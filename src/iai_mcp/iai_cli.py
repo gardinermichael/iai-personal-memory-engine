@@ -470,7 +470,19 @@ def cmd_last(args: argparse.Namespace) -> int:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="iai",
-        description="Terminal memory for your agent — recall, capture, ask, status.",
+        description=(
+            "Terminal memory for your agent — recall, capture, ask, status. "
+            "Use `iai` for day-to-day memory reads/writes; use `iai-mcp` for "
+            "operator workflows such as daemon control, hook installation, "
+            "crypto, doctor, and maintenance."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  [read-only] iai recall "project decisions"
+  [writes memory] iai capture "Remember this design decision"
+  Operator/admin equivalent: iai-mcp daemon status
+""",
         add_help=True,
     )
     parser.add_argument("--version", action="version", version=f"iai {__version__}")
@@ -480,8 +492,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_recall = sub.add_parser(
         "recall",
         help="Recall memories by natural-language cue",
-        description="Recall memories. Uses the daemon when alive; falls back "
-        "to the offline bank scan when daemon is down.",
+        description=(
+            "[read-only] Recall memories. Uses the daemon when alive; falls back "
+            "to the offline bank scan when daemon is down.\n\n"
+            "Examples:\n  iai recall \"project decisions\"\n  iai recall \"api keys\" --limit 3"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_recall.add_argument("cue", help="Natural-language query")
     p_recall.add_argument(
@@ -501,7 +517,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_capture = sub.add_parser(
         "capture",
         help="Capture one episodic memory",
-        description="Write one episodic record to the store via the daemon.",
+        description=(
+            "[writes memory] Write one episodic record to the store via the daemon.\n\n"
+            "Examples:\n  iai capture \"Remember the deployment checklist\"\n"
+            "  iai capture \"Follow up with Sam\" --session-id SESSION"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_capture.add_argument("text", help="Memory text to store")
     p_capture.add_argument(

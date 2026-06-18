@@ -332,7 +332,28 @@ from ._daemon import (
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="iai-mcp")
+    parser = argparse.ArgumentParser(
+        prog="iai-mcp",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Operator CLI for the iai memory engine: run daemon workflows, "
+            "install capture hooks, manage encryption, inspect topology, and "
+            "perform maintenance."
+        ),
+        epilog="""
+Major workflows:
+  [read-only] inspect daemon health:     iai-mcp daemon status
+  [writes memory] capture a transcript:  iai-mcp capture-transcript transcript.jsonl --session-id SESSION
+  [installs files/services] install:     iai-mcp daemon install --dry-run
+  [installs files/services] hooks:       iai-mcp capture-hooks status
+
+Examples:
+  iai-mcp daemon status
+  iai-mcp capture-hooks status
+  iai-mcp crypto status
+  iai-mcp maintenance compact-hippo --dry-run
+""",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     h = sub.add_parser("health", help="show LLM health status")
@@ -385,6 +406,14 @@ def _build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser(
         "crypto",
         help="encryption key management",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Manage encryption keys and recovery workflows for stored memories.",
+        epilog="""
+Examples:
+  [read-only] iai-mcp crypto status
+  [writes memory] iai-mcp crypto rotate
+  [writes memory] iai-mcp crypto recover-with-prior-key --prior-key-file KEY --dry-run
+""",
     )
     crypto_sub = c.add_subparsers(dest="crypto_cmd", required=True)
 
@@ -552,6 +581,14 @@ def _build_parser() -> argparse.ArgumentParser:
     ch = sub.add_parser(
         "capture-hooks",
         help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Install, remove, or inspect Claude Code hooks used for ambient session capture.",
+        epilog="""
+Examples:
+  [read-only] iai-mcp capture-hooks status
+  [installs files/services] iai-mcp capture-hooks install
+  [installs files/services] iai-mcp capture-hooks uninstall
+""",
     )
     ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
     ch_sub.add_parser("install",
@@ -598,6 +635,15 @@ def _build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser(
         "daemon",
         help="sleep daemon: install/uninstall/start/stop/status/logs/...",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Manage the background sleep daemon and scheduler lifecycle.",
+        epilog="""
+Examples:
+  [read-only] iai-mcp daemon status
+  [read-only] iai-mcp daemon logs -n 50
+  [installs files/services] iai-mcp daemon install --dry-run
+  [installs files/services] iai-mcp daemon uninstall --yes
+""",
     )
     daemon_sub = d.add_subparsers(dest="daemon_cmd", required=True)
 
@@ -732,6 +778,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "one-shot maintenance ops. Currently: compact-hippo "
             "(PRAGMA wal_checkpoint + VACUUM + hnswlib rebuild)."
         ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Run one-shot maintenance workflows; default modes are dry-run where available.",
+        epilog="""
+Examples:
+  [read-only] iai-mcp maintenance compact-hippo --dry-run
+  [writes memory] iai-mcp maintenance compact-hippo --apply --yes
+  [writes memory] iai-mcp maintenance sleep-cycle --force
+""",
     )
     mtn_sub = mtn.add_subparsers(dest="maintenance_cmd", required=True)
     mtn_compact = mtn_sub.add_parser(

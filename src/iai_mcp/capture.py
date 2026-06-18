@@ -1,7 +1,7 @@
-
 from __future__ import annotations
 
 import hashlib
+import glob
 import json
 import logging
 import os
@@ -251,7 +251,11 @@ def capture_turn(
     source_uuid: str | None = None,
 ) -> dict[str, Any]:
     if tier not in TIER_ENUM:
-        return {"status": "skipped", "record_id": None, "reason": f"invalid tier {tier!r}"}
+        return {
+            "status": "skipped",
+            "record_id": None,
+            "reason": f"invalid tier {tier!r}",
+        }
 
     text = (text or "").strip()
     if len(text) < MIN_CAPTURE_LEN:
@@ -356,8 +360,14 @@ def capture_turn(
         last_reviewed=None,
         never_decay=False,
         never_merge=False,
-        provenance=[{"ts": now.isoformat(), "cue": cue or "(auto-capture)",
-                     "session_id": session_id, "role": role}],
+        provenance=[
+            {
+                "ts": now.isoformat(),
+                "cue": cue or "(auto-capture)",
+                "session_id": session_id,
+                "role": role,
+            }
+        ],
         created_at=now,
         updated_at=now,
         tags=tags,
@@ -371,10 +381,15 @@ def capture_turn(
         store.insert(rec)
     except Exception as e:
         log.exception("capture_turn insert failed")
-        return {"status": "skipped", "record_id": None, "reason": f"insert-failed: {type(e).__name__}"}
+        return {
+            "status": "skipped",
+            "record_id": None,
+            "reason": f"insert-failed: {type(e).__name__}",
+        }
 
     try:
         from iai_mcp.peri_event_buffer import get_buffer
+
         buf = get_buffer()
         if buf is not None:
             buf.add(rec.id, rec.created_at, rec.tier)
@@ -399,8 +414,13 @@ def capture_transcript(
 ) -> dict[str, Any]:
     path = Path(transcript_path).expanduser()
     if not path.exists():
-        return {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 1,
-                "reason": f"transcript not found: {path}"}
+        return {
+            "inserted": 0,
+            "reinforced": 0,
+            "skipped": 0,
+            "errors": 1,
+            "reason": f"transcript not found: {path}",
+        }
 
     counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0}
     seen = 0
@@ -449,12 +469,265 @@ def capture_transcript(
     return counts
 
 
+def _transcript_file_key(path: Path) -> str:
+    try:
+        return str(path.expanduser().resolve())
+    except OSError:
+        return str(path.expanduser())
+
+
+def _transcript_file_state(path: Path) -> dict[str, Any]:
+    st = path.stat()
+    return {
+        "path": _transcript_file_key(path),
+        "size": st.st_size,
+        "mtime_ns": st.st_mtime_ns,
+    }
+
+
+def _load_import_resume_state(logs_dir: Path) -> set[tuple[str, int, int]]:
+    done: set[tuple[str, int, int]] = set()
+    for report_path in sorted(logs_dir.glob("import-sessions-*.json")):
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+        for file_report in report.get("files", []):
+            if not isinstance(file_report, dict):
+                continue
+            if file_report.get("status") not in {"imported", "imported_with_errors"}:
+                continue
+            path = file_report.get("path")
+            size = file_report.get("size")
+            mtime_ns = file_report.get("mtime_ns")
+            if (
+                isinstance(path, str)
+                and isinstance(size, int)
+                and isinstance(mtime_ns, int)
+            ):
+                done.add((path, size, mtime_ns))
+    return done
+
+
+def discover_session_transcripts(targets: list[str] | None = None) -> list[Path]:
+    selected = targets or [str(Path.home() / ".claude" / "projects")]
+    candidates: list[Path] = []
+    seen: set[str] = set()
+    for raw in selected:
+        target = Path(raw).expanduser()
+        paths: list[Path]
+        if any(ch in str(target) for ch in "*?[]"):
+            paths = [
+                Path(p)
+                for p in glob.glob(str(target), recursive=True)
+                if Path(p).is_file()
+            ]
+        elif target.is_dir():
+            paths = [p for p in target.rglob("*.jsonl") if p.is_file()]
+        elif target.is_file():
+            paths = [target]
+        else:
+            paths = []
+        for path in paths:
+            key = _transcript_file_key(path)
+            if key not in seen:
+                seen.add(key)
+                candidates.append(path)
+    candidates.sort(key=lambda p: _transcript_file_key(p))
+    return candidates
+
+
+def import_session_transcripts(
+    store: MemoryStore,
+    *,
+    targets: list[str] | None = None,
+    resume: bool = False,
+    limit_files: int | None = None,
+    limit_turns_per_file: int | None = None,
+    status_printer: Any | None = print,
+) -> dict[str, Any]:
+    """Bulk import Claude Code JSONL transcript files and write a JSON report."""
+    selected_targets = targets or [str(Path.home() / ".claude" / "projects")]
+    candidates = discover_session_transcripts(selected_targets)
+    if limit_files is not None and limit_files >= 0:
+        candidates = candidates[:limit_files]
+
+    logs_dir = store.root / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    prior_done = _load_import_resume_state(logs_dir) if resume else set()
+
+    totals = {
+        "files_scanned": len(candidates),
+        "files_imported": 0,
+        "turns_inserted": 0,
+        "turns_reinforced": 0,
+        "turns_skipped": 0,
+        "parse_errors": 0,
+        "file_errors": 0,
+    }
+    started_at = datetime.now(timezone.utc)
+    report: dict[str, Any] = {
+        "version": 1,
+        "started_at": started_at.isoformat(),
+        "store_path": str(store.root),
+        "targets": selected_targets,
+        "resume": resume,
+        "limits": {
+            "limit_files": limit_files,
+            "limit_turns_per_file": limit_turns_per_file,
+        },
+        "totals": totals,
+        "files": [],
+    }
+
+    if status_printer is not None:
+        status_printer(
+            "import-sessions: "
+            f"store={store.root} targets={selected_targets} candidates={len(candidates)}"
+        )
+
+    for path in candidates:
+        state: dict[str, Any]
+        try:
+            state = _transcript_file_state(path)
+        except OSError as exc:
+            totals["file_errors"] += 1
+            file_report = {
+                "path": str(path),
+                "status": "file_error",
+                "error": f"{type(exc).__name__}: {exc}",
+                "inserted": 0,
+                "reinforced": 0,
+                "skipped": 0,
+                "parse_errors": 0,
+            }
+            report["files"].append(file_report)
+            if status_printer is not None:
+                status_printer(f"file_error {path}: {type(exc).__name__}")
+            continue
+
+        if resume and (state["path"], state["size"], state["mtime_ns"]) in prior_done:
+            file_report = {
+                **state,
+                "status": "skipped_resume",
+                "inserted": 0,
+                "reinforced": 0,
+                "skipped": 0,
+                "parse_errors": 0,
+            }
+            report["files"].append(file_report)
+            if status_printer is not None:
+                status_printer(f"skipped_resume {path}")
+            continue
+
+        counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "parse_errors": 0}
+        turns_seen = 0
+        status = "imported"
+        try:
+            with path.open(encoding="utf-8") as fh:
+                for line_no, line in enumerate(fh, start=1):
+                    if (
+                        limit_turns_per_file is not None
+                        and turns_seen >= limit_turns_per_file
+                    ):
+                        break
+                    try:
+                        obj = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        counts["parse_errors"] += 1
+                        continue
+                    if not isinstance(obj, dict):
+                        counts["skipped"] += 1
+                        continue
+                    msg = (
+                        obj.get("message")
+                        if isinstance(obj.get("message"), dict)
+                        else obj
+                    )
+                    role = obj.get("type") or msg.get("role", "")
+                    if role not in {"user", "assistant"}:
+                        continue
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        text = "\n".join(
+                            block.get("text", "")
+                            for block in content
+                            if isinstance(block, dict) and block.get("type") == "text"
+                        ).strip()
+                    else:
+                        text = str(content).strip()
+                    if not text or _is_noise(text):
+                        counts["skipped"] += 1
+                        continue
+                    turns_seen += 1
+                    result = capture_turn(
+                        store,
+                        cue=f"historical import {path.name}:{line_no}",
+                        text=text,
+                        tier="episodic",
+                        session_id=path.stem,
+                        role=role,
+                        ts=obj.get("timestamp"),
+                        source_uuid=obj.get("uuid"),
+                    )
+                    res_status = result.get("status", "skipped")
+                    if res_status in {"inserted", "reinforced"}:
+                        counts[res_status] += 1
+                    else:
+                        counts["skipped"] += 1
+        except OSError as exc:
+            totals["file_errors"] += 1
+            status = "file_error"
+            file_error = f"{type(exc).__name__}: {exc}"
+        else:
+            file_error = None
+            totals["files_imported"] += 1
+            if counts["parse_errors"]:
+                status = "imported_with_errors"
+
+        totals["turns_inserted"] += counts["inserted"]
+        totals["turns_reinforced"] += counts["reinforced"]
+        totals["turns_skipped"] += counts["skipped"]
+        totals["parse_errors"] += counts["parse_errors"]
+        file_report = {
+            **state,
+            "status": status,
+            "inserted": counts["inserted"],
+            "reinforced": counts["reinforced"],
+            "skipped": counts["skipped"],
+            "parse_errors": counts["parse_errors"],
+        }
+        if file_error is not None:
+            file_report["error"] = file_error
+        report["files"].append(file_report)
+        if status_printer is not None:
+            status_printer(
+                f"{status} {path}: inserted={counts['inserted']} "
+                f"reinforced={counts['reinforced']} skipped={counts['skipped']} "
+                f"parse_errors={counts['parse_errors']}"
+            )
+
+    report["finished_at"] = datetime.now(timezone.utc).isoformat()
+    report_path = (
+        logs_dir / f"import-sessions-{started_at.strftime('%Y%m%dT%H%M%SZ')}.json"
+    )
+    report["report_path"] = str(report_path)
+    tmp_path = report_path.with_suffix(".json.tmp")
+    tmp_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    os.replace(tmp_path, report_path)
+    if status_printer is not None:
+        status_printer(f"report {report_path}")
+    return report
+
+
 _NOISE_PATTERNS: tuple[tuple[str, str], ...] = (
     ("startswith", "<command-message>"),
     ("startswith", "<command-name>"),
     ("startswith", "Base directory for this skill:"),
     ("startswith", "<task-notification>"),
-    ("equals",     "[Request interrupted by user]"),
+    ("equals", "[Request interrupted by user]"),
 )
 
 
@@ -606,15 +879,17 @@ def read_pending_live_events(session_id: str | None = None) -> list[dict]:
                     ts_raw = ev.get("ts")
                     ts_dt = _resolve_ts(ts_raw)
                     ts_iso = ts_dt.isoformat()
-                    events.append({
-                        "text": ev.get("text", ""),
-                        "role": ev.get("role", "user"),
-                        "tier": ev.get("tier", "episodic"),
-                        "session_id": file_session_id,
-                        "ts": ts_dt,
-                        "ts_iso": ts_iso,
-                        "source_uuid": ev.get("source_uuid"),
-                    })
+                    events.append(
+                        {
+                            "text": ev.get("text", ""),
+                            "role": ev.get("role", "user"),
+                            "tier": ev.get("tier", "episodic"),
+                            "session_id": file_session_id,
+                            "ts": ts_dt,
+                            "ts_iso": ts_iso,
+                            "source_uuid": ev.get("source_uuid"),
+                        }
+                    )
         except OSError:
             continue
 
@@ -653,7 +928,9 @@ def write_deferred_captures(
                     obj = json.loads(line)
                 except (json.JSONDecodeError, ValueError):
                     continue
-                msg = obj.get("message") if isinstance(obj.get("message"), dict) else obj
+                msg = (
+                    obj.get("message") if isinstance(obj.get("message"), dict) else obj
+                )
                 role = obj.get("type") or msg.get("role", "")
                 if role not in {"user", "assistant"}:
                     continue
@@ -674,7 +951,8 @@ def write_deferred_captures(
                     "cue": f"session {session_id} turn {seen}",
                     "tier": "episodic",
                     "role": role,
-                    "ts": obj.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+                    "ts": obj.get("timestamp")
+                    or datetime.now(timezone.utc).isoformat(),
                 }
                 src_uuid = obj.get("uuid")
                 if src_uuid:
@@ -688,7 +966,8 @@ def drain_deferred_captures(store: MemoryStore) -> dict[str, int]:
     log_dir = Path.home() / ".iai-mcp" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = (
-        log_dir / f"deferred-drain-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.log"
+        log_dir
+        / f"deferred-drain-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.log"
     )
     counts = {
         "files_drained": 0,
@@ -723,15 +1002,11 @@ def drain_deferred_captures(store: MemoryStore) -> dict[str, int]:
         next_n = prior_n + 1
         if next_n > QUARANTINE_MAX_ATTEMPTS:
             try:
-                _quarantine_file(
-                    fpath, store, log_path=log_path, attempts=next_n
-                )
+                _quarantine_file(fpath, store, log_path=log_path, attempts=next_n)
             except Exception as exc:  # noqa: BLE001 -- fail-safe boundary
                 log.debug("quarantine_file_failed: %s", exc)
         else:
-            new_name = base_no_crash.replace(
-                ".jsonl", f".crash-{next_n}.jsonl"
-            )
+            new_name = base_no_crash.replace(".jsonl", f".crash-{next_n}.jsonl")
             try:
                 fpath.rename(fpath.with_name(new_name))
             except Exception as exc:  # noqa: BLE001
@@ -763,9 +1038,7 @@ def drain_deferred_captures(store: MemoryStore) -> dict[str, int]:
     for fpath in candidates:
         if cap_hit:
             break
-        claim_path = fpath.with_name(
-            fpath.stem + f".processing-{os.getpid()}.jsonl"
-        )
+        claim_path = fpath.with_name(fpath.stem + f".processing-{os.getpid()}.jsonl")
         try:
             fpath.rename(claim_path)
         except FileNotFoundError:
@@ -983,8 +1256,7 @@ def drain_permanent_failed_files(
 
     if dry_run:
         file_list = [
-            {"name": f.name, "line_count": _count_lines(f)}
-            for f in terminal_files
+            {"name": f.name, "line_count": _count_lines(f)} for f in terminal_files
         ]
         return {"dry_run": True, "files": file_list, "count": len(file_list)}
 
@@ -1000,7 +1272,9 @@ def drain_permanent_failed_files(
         try:
             shutil.copy2(fpath, quarantine_dir / fpath.name)
         except Exception as exc:  # noqa: BLE001 -- fail-safe; log and continue
-            log.warning("drain_permanent_failed_quarantine_failed %s: %s", fpath.name, exc)
+            log.warning(
+                "drain_permanent_failed_quarantine_failed %s: %s", fpath.name, exc
+            )
             continue
 
         line_count = 0
@@ -1086,7 +1360,9 @@ def drain_permanent_failed_files(
             try:
                 fpath.unlink()
             except OSError as exc:
-                log.warning("drain_permanent_failed_unlink_failed %s: %s", fpath.name, exc)
+                log.warning(
+                    "drain_permanent_failed_unlink_failed %s: %s", fpath.name, exc
+                )
 
             inserted_total += file_inserted
             dropped_total += file_dropped
@@ -1197,6 +1473,7 @@ def drain_active_live_captures(
         if file_had_insert:
             try:
                 from iai_mcp.store import flush_record_buffer
+
                 flush_record_buffer(store)
             except Exception as _flush_exc:  # noqa: BLE001 -- flush is best-effort
                 log.warning("drain_active_flush_failed: %s", _flush_exc)

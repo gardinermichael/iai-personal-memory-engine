@@ -468,20 +468,47 @@ def cmd_last(args: argparse.Namespace) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(
         prog="iai",
-        description="Terminal memory for your agent — recall, capture, ask, status.",
+        description=(
+            "iai is the user-facing memory CLI for capturing, recalling, and "
+            "asking questions over your personal memory store. Use it for "
+            "everyday memory workflows from a terminal or agent shell.\n\n"
+            "For operator/admin tasks such as daemon lifecycle management, "
+            "doctor checks, migrations, and low-level store maintenance, use "
+            "the companion `iai-mcp` CLI instead."
+        ),
+        epilog="""examples:
+  iai recall "what did we decide about homebrew packaging?"
+  iai capture "I prefer concise status updates" --tags preference
+  iai ask "what install process did we discuss?"
+  iai status
+  iai last --limit 10""",
+        formatter_class=formatter,
         add_help=True,
     )
     parser.add_argument("--version", action="version", version=f"iai {__version__}")
 
-    sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
+    sub = parser.add_subparsers(
+        dest="cmd", metavar="COMMAND", parser_class=argparse.ArgumentParser
+    )
 
     p_recall = sub.add_parser(
         "recall",
         help="Recall memories by natural-language cue",
-        description="Recall memories. Uses the daemon when alive; falls back "
-        "to the offline bank scan when daemon is down.",
+        description=(
+            "Recall memories that match a natural-language cue. The command "
+            "tries the live iai daemon first for the freshest ranked results. "
+            "If the daemon is asleep or unreachable, it falls back to direct "
+            "store recall when the local Hippo store is available, then to the "
+            "offline bank-recall scan as a last resort."
+        ),
+        epilog="""examples:
+  iai recall "what did we decide about homebrew packaging?"
+  iai recall "release checklist" --limit 10
+  iai recall "status update preferences" --json""",
+        formatter_class=formatter,
     )
     p_recall.add_argument("cue", help="Natural-language query")
     p_recall.add_argument(
@@ -494,14 +521,27 @@ def _build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         default=False,
-        help="Print result as a JSON payload for programmatic use (MCP wrapper)",
+        help=(
+            "Print a JSON object with hits, count, and source metadata on "
+            "stdout for scripts or MCP wrappers"
+        ),
     )
     p_recall.set_defaults(func=cmd_recall)
 
     p_capture = sub.add_parser(
         "capture",
         help="Capture one episodic memory",
-        description="Write one episodic record to the store via the daemon.",
+        description=(
+            "Capture one user-facing episodic memory. The command writes via "
+            "the daemon when it is reachable; if IAI_MCP_STORE is set and the "
+            "daemon is unavailable, it attempts a direct deferred-embedding "
+            "write to that store."
+        ),
+        epilog="""examples:
+  iai capture "I prefer concise status updates"
+  iai capture "Homebrew formula needs bottle notes" --session-id release-notes
+  iai capture "I prefer concise status updates" --json""",
+        formatter_class=formatter,
     )
     p_capture.add_argument("text", help="Memory text to store")
     p_capture.add_argument(
@@ -510,19 +550,33 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Session identifier (default '-')",
     )
     p_capture.add_argument(
+        "--tags",
+        nargs="+",
+        default=None,
+        help="Optional user-facing tags to associate with this capture",
+    )
+    p_capture.add_argument(
         "--json",
         action="store_true",
         default=False,
-        help="Emit result as JSON on stdout (for programmatic use)",
+        help="Emit a JSON object with id, status, and source metadata on stdout",
     )
     p_capture.set_defaults(func=cmd_capture)
 
     p_ask = sub.add_parser(
         "ask",
         help="Recall + LLM synthesis grounded in memories",
-        description="Recall the top-K memories matching the question, then "
-        "synthesize an answer via `claude -p` (subscription-billed). "
-        "Prints the answer + a Sources: footer with the cited record ids.",
+        description=(
+            "Answer a question using your memories as grounding context. The "
+            "command recalls the top matching memories from the daemon, then "
+            "shells out to the Claude CLI via `claude -p` to synthesize a "
+            "short answer. The answer is followed by a Sources footer listing "
+            "the memory record ids supplied to Claude."
+        ),
+        epilog="""examples:
+  iai ask "what install process did we discuss?"
+  iai ask "what did we decide about status updates?" --limit 3""",
+        formatter_class=formatter,
     )
     p_ask.add_argument("question", help="Natural-language question")
     p_ask.add_argument(
@@ -536,19 +590,39 @@ def _build_parser() -> argparse.ArgumentParser:
     p_status = sub.add_parser(
         "status",
         help="Short health summary (daemon + records + subscription)",
-        description="User-tier health summary. For the 17-row operator "
-        "checklist run `iai-mcp doctor` instead.",
+        description=(
+            "Show a compact user-tier health summary: whether the daemon is "
+            "reachable, how many records it reports, the current recall regime, "
+            "and whether Claude CLI credentials/subscription checks pass. For "
+            "the full operator checklist, run `iai-mcp doctor` instead."
+        ),
+        epilog="""examples:
+  iai status
+  iai-mcp doctor""",
+        formatter_class=formatter,
     )
     p_status.set_defaults(func=cmd_status)
 
     p_last = sub.add_parser(
         "last",
         help="Show the most-recent user-turn records, time-descending",
-        description="Return the N most-recent role:user turns from the store. "
-        "Optionally filter to a single session with --session.",
+        description=(
+            "List the most recent role:user turns in reverse chronological "
+            "order. The command reads the local store directly and merges "
+            "pending live capture events when present, then falls back to the "
+            "daemon's recent-episodes endpoint if the direct path has no rows. "
+            "Use --session to narrow the output to one session."
+        ),
+        epilog="""examples:
+  iai last
+  iai last --limit 10
+  iai last --session my-session --json""",
+        formatter_class=formatter,
     )
     p_last.add_argument(
         "--n",
+        "--limit",
+        dest="n",
         type=int,
         default=5,
         help="Number of turns to return (default 5)",
@@ -563,7 +637,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         default=False,
-        help="Emit turns as a JSON object on stdout (for programmatic use)",
+        help="Emit a JSON object with turns, count, and source metadata on stdout",
     )
     p_last.set_defaults(func=cmd_last)
 

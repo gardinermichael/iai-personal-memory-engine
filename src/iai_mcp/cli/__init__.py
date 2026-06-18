@@ -302,6 +302,7 @@ from ._capture import (
     _TURN_HOOK_MARKER,
     _SESSION_RECALL_HOOK_MARKER,
     _session_recall_hook_paths,
+    _targets_from_arg,
     _load_settings,
     cmd_capture_hooks_install,
     cmd_capture_hooks_uninstall,
@@ -554,15 +555,41 @@ def _build_parser() -> argparse.ArgumentParser:
         help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
     )
     ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
-    ch_sub.add_parser("install",
-                      help="copy Stop hook to ~/.claude/hooks/ and register in settings.json"
-                      ).set_defaults(func=cmd_capture_hooks_install)
-    ch_sub.add_parser("uninstall",
-                      help="remove the Stop hook and its settings.json entry"
-                      ).set_defaults(func=cmd_capture_hooks_uninstall)
-    ch_sub.add_parser("status",
-                      help="show whether the Stop hook is installed and active"
-                      ).set_defaults(func=cmd_capture_hooks_status)
+    install_hooks = ch_sub.add_parser(
+        "install",
+        help="copy hooks for Claude Code, Codex, or both and register hook config",
+    )
+    install_hooks.add_argument(
+        "--target",
+        choices=["claude", "codex", "all"],
+        default="claude",
+        help="hook target to install (default: claude)",
+    )
+    install_hooks.set_defaults(func=cmd_capture_hooks_install)
+
+    uninstall_hooks = ch_sub.add_parser(
+        "uninstall",
+        help="remove hooks and hook config entries for Claude Code, Codex, or both",
+    )
+    uninstall_hooks.add_argument(
+        "--target",
+        choices=["claude", "codex", "all"],
+        default="claude",
+        help="hook target to uninstall (default: claude)",
+    )
+    uninstall_hooks.set_defaults(func=cmd_capture_hooks_uninstall)
+
+    status_hooks = ch_sub.add_parser(
+        "status",
+        help="show whether hooks are installed and active for Claude Code, Codex, or both",
+    )
+    status_hooks.add_argument(
+        "--target",
+        choices=["claude", "codex", "all"],
+        default="claude",
+        help="hook target to inspect (default: claude)",
+    )
+    status_hooks.set_defaults(func=cmd_capture_hooks_status)
 
     a = sub.add_parser(
         "audit",

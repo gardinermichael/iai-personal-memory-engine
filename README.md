@@ -175,7 +175,7 @@ Or edit `~/.claude.json` directly:
 
 Use the absolute path. `~` and `$HOME` won't expand here.
 
-For Claude Desktop, edit `~/Library/Application Support/Claude/claude_desktop_config.json`.
+For Claude Desktop, edit `~/Library/Application\ Support/Claude/claude_desktop_config.json`.
 
 Codex CLI:
 

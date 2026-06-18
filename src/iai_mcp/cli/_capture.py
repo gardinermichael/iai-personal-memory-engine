@@ -508,6 +508,31 @@ def _load_settings(path):
         return {}
 
 
+def _hook_marker_wired(data: dict, event_name: str, marker: str) -> bool:
+    hooks_root = data.get("hooks", data)
+    entries = hooks_root.get(event_name, []) if isinstance(hooks_root, dict) else []
+    if isinstance(entries, dict):
+        entries = [entries]
+    if not isinstance(entries, list):
+        return False
+    return any(
+        any(marker in (h.get("command") or "")
+            for h in (entry.get("hooks") or []))
+        for entry in entries
+        if isinstance(entry, dict)
+    )
+
+
+def _codex_hook_paths() -> tuple[Path, Path, Path, Path]:
+    hooks_dir = Path.home() / ".codex" / "hooks"
+    return (
+        hooks_dir / _CAPTURE_HOOK_MARKER,
+        hooks_dir / _TURN_HOOK_MARKER,
+        hooks_dir / _SESSION_RECALL_HOOK_MARKER,
+        Path.home() / ".codex" / "hooks.json",
+    )
+
+
 def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
     from iai_mcp import cli as _cli
     import json as _json
@@ -681,70 +706,97 @@ def cmd_capture_hooks_status(args: argparse.Namespace) -> int:
     from iai_mcp import cli as _cli
     import json as _json
 
+    target = getattr(args, "target", "claude") or "claude"
+
     src, dst, settings = _capture_hook_paths()
     turn_src, turn_dst = _turn_hook_paths()
     src_recall, dst_recall, _ = _session_recall_hook_paths()
 
-    print(f"Stop template:        {src}  {'PRESENT' if src.exists() else 'MISSING'}")
-    print(f"Stop installed:       {dst}  {'PRESENT' if dst.exists() else 'MISSING'}")
-    print(f"Turn template:        {turn_src}  {'PRESENT' if turn_src.exists() else 'MISSING'}")
-    print(f"Turn installed:       {turn_dst}  {'PRESENT' if turn_dst.exists() else 'MISSING'}")
-    print(f"Recall template:      {src_recall}  {'PRESENT' if src_recall.exists() else 'MISSING'}")
-    print(f"Recall installed:     {dst_recall}  {'PRESENT' if dst_recall.exists() else 'MISSING'}")
-
     data = _load_settings(settings)
-    stop_list = data.get("hooks", {}).get("Stop", [])
-    submit_list = data.get("hooks", {}).get("UserPromptSubmit", [])
-    wired = any(
-        any(_CAPTURE_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
-        for entry in stop_list
-    )
-    turn_wired = any(
-        any(_TURN_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
-        for entry in submit_list
-    )
-    ss_list = data.get("hooks", {}).get("SessionStart", [])
-    recall_wired = any(
-        any(_SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
-        for entry in ss_list
-    )
-    print(f"Claude Code settings.json Stop:             {settings}  {'WIRED' if wired else 'NOT WIRED'}")
-    print(f"Claude Code settings.json UserPromptSubmit: {settings}  {'WIRED' if turn_wired else 'NOT WIRED'}")
-    print(f"Claude Code settings.json SessionStart:     {settings}  {'WIRED' if recall_wired else 'NOT WIRED'}")
-
-    desktop_cfg = _cli._claude_desktop_config_path()
-    if desktop_cfg is None:
-        desktop_line = "Claude Desktop: not installed"
-        desktop_wired = False
-    elif not desktop_cfg.exists():
-        desktop_line = f"Claude Desktop: {desktop_cfg} MISSING"
-        desktop_wired = False
-    else:
-        try:
-            d = _json.loads(desktop_cfg.read_text())
-            desktop_wired = "iai-mcp" in d.get("mcpServers", {})
-            desktop_line = f"Claude Desktop: {desktop_cfg}  {'WIRED' if desktop_wired else 'NOT WIRED'}"
-        except (OSError, ValueError):
-            desktop_line = f"Claude Desktop: {desktop_cfg} (unreadable)"
-            desktop_wired = False
-    print(desktop_line)
-
-    ok = (
+    wired = _hook_marker_wired(data, "Stop", _CAPTURE_HOOK_MARKER)
+    turn_wired = _hook_marker_wired(data, "UserPromptSubmit", _TURN_HOOK_MARKER)
+    recall_wired = _hook_marker_wired(data, "SessionStart", _SESSION_RECALL_HOOK_MARKER)
+    claude_ok = (
         dst.exists() and wired
         and turn_dst.exists() and turn_wired
         and dst_recall.exists() and recall_wired
     )
-    desktop_problem = desktop_cfg is not None and desktop_cfg.exists() and not desktop_wired
 
-    if ok and not desktop_problem:
+    desktop_problem = False
+    desktop_wired = False
+    if target in {"claude", "all"}:
+        print(f"Stop template:        {src}  {'PRESENT' if src.exists() else 'MISSING'}")
+        print(f"Stop installed:       {dst}  {'PRESENT' if dst.exists() else 'MISSING'}")
+        print(f"Turn template:        {turn_src}  {'PRESENT' if turn_src.exists() else 'MISSING'}")
+        print(f"Turn installed:       {turn_dst}  {'PRESENT' if turn_dst.exists() else 'MISSING'}")
+        print(f"Recall template:      {src_recall}  {'PRESENT' if src_recall.exists() else 'MISSING'}")
+        print(f"Recall installed:     {dst_recall}  {'PRESENT' if dst_recall.exists() else 'MISSING'}")
+        print(f"Claude Code settings.json Stop:             {settings}  {'WIRED' if wired else 'NOT WIRED'}")
+        print(f"Claude Code settings.json UserPromptSubmit: {settings}  {'WIRED' if turn_wired else 'NOT WIRED'}")
+        print(f"Claude Code settings.json SessionStart:     {settings}  {'WIRED' if recall_wired else 'NOT WIRED'}")
+
+        desktop_cfg = _cli._claude_desktop_config_path()
+        if desktop_cfg is None:
+            desktop_line = "Claude Desktop: not installed"
+        elif not desktop_cfg.exists():
+            desktop_line = f"Claude Desktop: {desktop_cfg} MISSING"
+        else:
+            try:
+                d = _json.loads(desktop_cfg.read_text())
+                desktop_wired = "iai-mcp" in d.get("mcpServers", {})
+                desktop_line = f"Claude Desktop: {desktop_cfg}  {'WIRED' if desktop_wired else 'NOT WIRED'}"
+            except (OSError, ValueError):
+                desktop_line = f"Claude Desktop: {desktop_cfg} (unreadable)"
+        print(desktop_line)
+        desktop_problem = desktop_cfg is not None and desktop_cfg.exists() and not desktop_wired
+
+    codex_stop_dst, codex_turn_dst, codex_recall_dst, codex_hooks = _codex_hook_paths()
+    codex_data = _load_settings(codex_hooks)
+    codex_stop_wired = _hook_marker_wired(codex_data, "Stop", _CAPTURE_HOOK_MARKER)
+    codex_turn_wired = _hook_marker_wired(codex_data, "UserPromptSubmit", _TURN_HOOK_MARKER)
+    codex_recall_wired = _hook_marker_wired(codex_data, "SessionStart", _SESSION_RECALL_HOOK_MARKER)
+    codex_ok = (
+        codex_stop_dst.exists() and codex_stop_wired
+        and codex_turn_dst.exists() and codex_turn_wired
+        and codex_recall_dst.exists() and codex_recall_wired
+    )
+    if target in {"codex", "all"}:
+        if target == "all":
+            print()
+        print(f"Codex Stop template:              {src}  {'PRESENT' if src.exists() else 'MISSING'}")
+        print(f"Codex Stop installed:             {codex_stop_dst}  {'PRESENT' if codex_stop_dst.exists() else 'MISSING'}")
+        print(f"Codex Turn installed:             {codex_turn_dst}  {'PRESENT' if codex_turn_dst.exists() else 'MISSING'}")
+        print(f"Codex Recall installed:           {codex_recall_dst}  {'PRESENT' if codex_recall_dst.exists() else 'MISSING'}")
+        print(f"Codex hooks.json Stop:            {codex_hooks}  {'WIRED' if codex_stop_wired else 'NOT WIRED'}")
+        print(f"Codex hooks.json UserPromptSubmit: {codex_hooks}  {'WIRED' if codex_turn_wired else 'NOT WIRED'}")
+        print(f"Codex hooks.json SessionStart:    {codex_hooks}  {'WIRED' if codex_recall_wired else 'NOT WIRED'}")
+
+    if target == "codex":
+        print(f"\nstatus: {'ACTIVE' if codex_ok else 'INACTIVE'} — Codex "
+              f"{'fully wired' if codex_ok else 'not fully wired'}")
+        return 0 if codex_ok else 1
+
+    if target == "all":
+        ok = claude_ok and not desktop_problem and codex_ok
+        if ok:
+            print("\nstatus: ACTIVE — Claude and Codex hooks fully wired")
+            return 0
+        msg = []
+        if not claude_ok:
+            msg.append("Claude Code not fully wired")
+        if desktop_problem:
+            msg.append("Claude Desktop present but iai-mcp not registered")
+        if not codex_ok:
+            msg.append("Codex not fully wired")
+        print(f"\nstatus: INACTIVE — {'; '.join(msg)}. Run: iai-mcp capture-hooks install")
+        return 1
+
+    if claude_ok and not desktop_problem:
         print(f"\nstatus: ACTIVE — Stop + UserPromptSubmit + SessionStart hooks wired "
               f"(Claude Code{'; Desktop also wired' if desktop_wired else ''})")
         return 0
     msg = []
-    if not ok:
+    if not claude_ok:
         msg.append("Claude Code not fully wired")
     if desktop_problem:
         msg.append("Claude Desktop present but iai-mcp not registered")

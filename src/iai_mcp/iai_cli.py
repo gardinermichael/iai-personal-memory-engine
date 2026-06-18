@@ -549,6 +549,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_last.add_argument(
         "--n",
+        "--limit",
+        dest="n",
         type=int,
         default=5,
         help="Number of turns to return (default 5)",

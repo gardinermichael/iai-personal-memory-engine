@@ -479,8 +479,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_recall = sub.add_parser(
         "recall",
-        help="Recall memories by natural-language cue",
-        description="Recall memories. Uses the daemon when alive; falls back "
+        help="[read-only] Recall memories",
+        description="Read memories by natural-language cue. Uses the daemon when alive; falls back "
         "to the offline bank scan when daemon is down.",
     )
     p_recall.add_argument("cue", help="Natural-language query")
@@ -500,7 +500,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_capture = sub.add_parser(
         "capture",
-        help="Capture one episodic memory",
+        help="[writes memory] Capture memory",
         description="Write one episodic record to the store via the daemon.",
     )
     p_capture.add_argument("text", help="Memory text to store")
@@ -535,16 +535,16 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser(
         "status",
-        help="Short health summary (daemon + records + subscription)",
-        description="User-tier health summary. For the 17-row operator "
+        help="[read-only] Show status",
+        description="Read daemon, record, and subscription health. For the 17-row operator "
         "checklist run `iai-mcp doctor` instead.",
     )
     p_status.set_defaults(func=cmd_status)
 
     p_last = sub.add_parser(
         "last",
-        help="Show the most-recent user-turn records, time-descending",
-        description="Return the N most-recent role:user turns from the store. "
+        help="[read-only] Show recent turns",
+        description="Read the N most-recent role:user turns from the store. "
         "Optionally filter to a single session with --session.",
     )
     p_last.add_argument(

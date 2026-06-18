@@ -335,7 +335,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="iai-mcp")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    h = sub.add_parser("health", help="show LLM health status")
+    h = sub.add_parser(
+        "health",
+        help="[read-only] show health",
+        description="Read LLM health status without mutating memory or daemon state.",
+    )
     h.set_defaults(func=cmd_health)
 
     bn = sub.add_parser(
@@ -430,9 +434,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ci = crypto_sub.add_parser(
         "init",
-        help=(
-            "generate a fresh .crypto.key file "
-            "(fresh installs only — refuses if file exists)"
+        help="[installs files/services] create crypto key",
+        description=(
+            "Generate a fresh .crypto.key file for crypto initialization. "
+            "Fresh installs only — refuses if the key file already exists."
         ),
     )
     ci.add_argument("--user-id", dest="user_id", default="default")
@@ -461,9 +466,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     cred = crypto_sub.add_parser(
         "redact-undecryptable",
-        help=(
-            "replace literal_surface that fails AES-GCM decrypt with a redacted "
-            "marker (preserves embeddings, edges, metadata)"
+        help="[destructive] redact undecryptable text",
+        description=(
+            "Replace literal_surface values that fail AES-GCM decrypt with a "
+            "redacted marker while preserving embeddings, edges, and metadata."
         ),
     )
     cred.add_argument("--user-id", dest="user_id", default="default")
@@ -471,7 +477,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     t = sub.add_parser(
         "trajectory",
-        help="aggregate M1..M6 trajectory events",
+        help="[read-only] show trajectory",
+        description="Read and aggregate M1..M6 trajectory events.",
     )
     t.add_argument(
         "--since",
@@ -483,15 +490,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     topo = sub.add_parser(
         "topology",
-        help="live small-world topology snapshot: C, L, sigma, communities, rich-club ratio, N, regime",
+        help="[read-only] show topology",
+        description=(
+            "Read a live small-world topology snapshot: C, L, sigma, "
+            "communities, rich-club ratio, N, and regime."
+        ),
     )
     topo.set_defaults(func=cmd_topology)
 
     cap = sub.add_parser(
         "capture-transcript",
-        help=(
-            "batch-capture a Claude Code JSONL transcript into episodic tier. "
-            "Used by the Stop hook for ambient WRITE-side observation capture."
+        help="[writes memory] capture transcript",
+        description=(
+            "Batch-capture a Claude Code JSONL transcript into the episodic "
+            "tier. Used by the Stop hook for ambient write-side observation capture."
         ),
     )
     cap.add_argument("transcript_path", help="path to the Claude Code JSONL transcript file")
@@ -513,8 +525,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ctd = sub.add_parser(
         "capture-turn-deferred",
-        help=(
-            "append a single JSONL event per new transcript turn to "
+        help="[writes memory] defer turn capture",
+        description=(
+            "Append one JSONL event per new transcript turn to "
             "{session_id}.live.jsonl. UserPromptSubmit-hook backend."
         ),
     )
@@ -530,9 +543,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ssp = sub.add_parser(
         "session-start",
-        help=(
-            "print the session-start recall payload as markdown on stdout. "
-            "Hook target for ~/.claude/hooks/iai-mcp-session-recall.sh."
+        help="[writes memory] capture session start",
+        description=(
+            "Print the session-start recall payload as markdown and record "
+            "session-start capture metadata for provenance. Hook target for "
+            "~/.claude/hooks/iai-mcp-session-recall.sh."
         ),
     )
     ssp.add_argument("--session-id", default="-", help="session id for provenance")
@@ -540,7 +555,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sris = sub.add_parser(
         "session-refresh-if-stale",
-        help=(
+        help="[writes memory] refresh session capture",
+        description=(
             "UserPromptSubmit hook gate: compare MAX(created_at) against the "
             "per-session watermark sidecar; call session_refresh_if_stale RPC "
             "only when new memory exists; emit additionalContext JSON on trigger."
@@ -554,9 +570,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
     )
     ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
-    ch_sub.add_parser("install",
-                      help="copy Stop hook to ~/.claude/hooks/ and register in settings.json"
-                      ).set_defaults(func=cmd_capture_hooks_install)
+    ch_sub.add_parser(
+        "install",
+        help="[installs files/services] install hooks",
+        description=(
+            "Copy the Stop hook to ~/.claude/hooks/ and register it in settings.json."
+        ),
+    ).set_defaults(func=cmd_capture_hooks_install)
     ch_sub.add_parser("uninstall",
                       help="remove the Stop hook and its settings.json entry"
                       ).set_defaults(func=cmd_capture_hooks_uninstall)
@@ -603,9 +623,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     di = daemon_sub.add_parser(
         "install",
-        help=(
-            "install launchd plist (macOS) / systemd user unit (Linux); "
-            "first-run consent banner unless --yes"
+        help="[installs files/services] install daemon",
+        description=(
+            "Install the launchd plist on macOS or systemd user unit on Linux; "
+            "shows a first-run consent banner unless --yes is provided."
         ),
     )
     di.add_argument(
@@ -637,15 +658,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
     daemon_sub.add_parser(
         "status",
-        help=(
-            "socket round-trip: print daemon FSM state, uptime, version "
-            "(warns on version skew vs installed package)"
+        help="[read-only] show daemon status",
+        description=(
+            "Perform a socket round-trip and print daemon FSM state, uptime, "
+            "and version; warns on version skew vs installed package."
         ),
     ).set_defaults(func=cmd_daemon_status)
 
     dlogs = daemon_sub.add_parser(
         "logs",
-        help="tail daemon log file (macOS Library/Logs) or journalctl (Linux)",
+        help="[read-only] show daemon logs",
+        description="Tail daemon log file (macOS Library/Logs) or journalctl (Linux).",
     )
     dlogs.add_argument("-f", "--follow", action="store_true")
     dlogs.add_argument("-n", "--lines", type=int, default=50)
@@ -696,10 +719,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sc = sub.add_parser(
         "schema-cleanup",
-        help=(
-            "soft-delete duplicate schema records. Default "
-            "mode is --dry-run; --apply snapshots the memory store dir and "
-            "performs the cleanup. Idempotent (re-running is a no-op)."
+        help="[maintenance] clean schemas",
+        description=(
+            "Soft-delete duplicate schema records. Default mode is --dry-run; "
+            "--apply snapshots the memory store dir and performs the cleanup. "
+            "Idempotent when re-run."
         ),
     )
     sc_mode = sc.add_mutually_exclusive_group()
@@ -736,10 +760,11 @@ def _build_parser() -> argparse.ArgumentParser:
     mtn_sub = mtn.add_subparsers(dest="maintenance_cmd", required=True)
     mtn_compact = mtn_sub.add_parser(
         "compact-hippo",
-        help=(
-            "compact Hippo storage: wal_checkpoint + VACUUM + hnswlib rebuild. "
-            "DAEMON MUST BE STOPPED. Default --dry-run; --apply requires "
-            "--yes for non-tty."
+        help="[maintenance] compact Hippo",
+        description=(
+            "Compact Hippo storage with wal_checkpoint, VACUUM, and hnswlib "
+            "rebuild. DAEMON MUST BE STOPPED. Default --dry-run; --apply "
+            "requires --yes for non-tty."
         ),
     )
     mtn_compact_mode = mtn_compact.add_mutually_exclusive_group()
@@ -773,7 +798,8 @@ def _build_parser() -> argparse.ArgumentParser:
     mtn_compact.set_defaults(func=cmd_maintenance_compact_hippo)
     mtn_compact_legacy = mtn_sub.add_parser(
         "compact-records",
-        help="Deprecated alias for compact-hippo (kept for one release).",
+        help="[maintenance] compact records",
+        description="Deprecated alias for compact-hippo, kept for one release.",
     )
     mtn_compact_legacy_mode = mtn_compact_legacy.add_mutually_exclusive_group()
     mtn_compact_legacy_mode.add_argument(
@@ -807,10 +833,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     mtn_symmetrize = mtn_sub.add_parser(
         "symmetrize-self-loops",
-        help=(
-            "backfill missing hebbian self-loops on existing records. "
-            "DAEMON MUST BE STOPPED. Default --dry-run; --apply requires "
-            "--yes for non-tty."
+        help="[maintenance] symmetrize self-loops",
+        description=(
+            "Backfill missing hebbian self-loops on existing records. DAEMON "
+            "MUST BE STOPPED. Default --dry-run; --apply requires --yes for non-tty."
         ),
     )
     mtn_symmetrize_mode = mtn_symmetrize.add_mutually_exclusive_group()
@@ -845,11 +871,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     mtn_sleep = mtn_sub.add_parser(
         "sleep-cycle",
-        help=(
-            "run the 5-step sleep pipeline once: "
-            "schema_mine, knob_tune, dream_decay, optimize_hippo, "
-            "compact_records. 3-strike auto-quarantine; use --force "
-            "to override, --reset-quarantine to clear."
+        help="[maintenance] run sleep cycle",
+        description=(
+            "Run the 5-step sleep pipeline once: schema_mine, knob_tune, "
+            "dream_decay, optimize_hippo, compact_records. 3-strike "
+            "auto-quarantine; use --force to override, --reset-quarantine to clear."
         ),
     )
     mtn_sleep.add_argument(
@@ -924,19 +950,20 @@ def _build_parser() -> argparse.ArgumentParser:
     lc_sub = lc.add_subparsers(dest="lifecycle_cmd", required=True)
     lc_status = lc_sub.add_parser(
         "status",
-        help=(
-            "print current lifecycle state, since-ts, last activity, "
-            "wrapper event seq, sleep-cycle progress, quarantine, and "
-            "shadow_run flag"
+        help="[read-only] show lifecycle status",
+        description=(
+            "Read current lifecycle state, since-ts, last activity, wrapper "
+            "event seq, sleep-cycle progress, quarantine, and shadow_run flag."
         ),
     )
     lc_status.set_defaults(func=cmd_lifecycle_status)
 
     lc_unlock = lc_sub.add_parser(
         "force-unlock",
-        help=(
-            "clear a stale ~/.iai-mcp/.locked lockfile and "
-            "print the prior PID / hostname / started_at"
+        help="[destructive] force unlock",
+        description=(
+            "Clear a stale ~/.iai-mcp/.locked lockfile and print the prior "
+            "PID, hostname, and started_at."
         ),
     )
     lc_unlock.add_argument(
@@ -974,11 +1001,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     dpf = sub.add_parser(
         "drain-permanent-failed",
-        help=(
-            "recover terminal .permanent-failed-*.jsonl files from "
+        help="[maintenance] drain failed captures",
+        description=(
+            "Recover terminal .permanent-failed-*.jsonl files from "
             ".deferred-captures/. Routes through daemon socket when daemon "
-            "is running; direct-open fallback when daemon is down. "
-            "--dry-run lists files without mutating anything."
+            "is running; direct-open fallback when daemon is down. --dry-run "
+            "lists files without mutating anything."
         ),
     )
     dpf.add_argument(

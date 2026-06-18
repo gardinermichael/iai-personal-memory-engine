@@ -481,39 +481,48 @@ def _build_parser() -> argparse.ArgumentParser:
         "recall",
         help="Recall memories by natural-language cue",
         description="Recall memories. Uses the daemon when alive; falls back "
-        "to the offline bank scan when daemon is down.",
+        "to the offline bank scan when daemon is down. Direct-store fallback "
+        "reads IAI_MCP_STORE when set (default: ~/.iai-mcp). "
+        "IAI_RECALL_READ_TIMEOUT sets daemon read timeout in seconds "
+        "(default: 2.0), and IAI_RECALL_ASLEEP_MARGIN_SEC sets the lifecycle "
+        "asleep grace period in seconds before skipping daemon recall "
+        "(default: 3.0).",
     )
     p_recall.add_argument("cue", help="Natural-language query")
     p_recall.add_argument(
         "--limit",
         type=int,
         default=5,
-        help="Maximum hits to print (default 5)",
+        help="maximum hits/rows to print (default: 5)",
     )
     p_recall.add_argument(
         "--json",
         action="store_true",
         default=False,
-        help="Print result as a JSON payload for programmatic use (MCP wrapper)",
+        help="print result as a JSON payload for programmatic use (default: false)",
     )
     p_recall.set_defaults(func=cmd_recall)
 
     p_capture = sub.add_parser(
         "capture",
         help="Capture one episodic memory",
-        description="Write one episodic record to the store via the daemon.",
+        description=(
+            "Write one episodic record to the store via the daemon. If the "
+            "daemon is unreachable, direct-write fallback is available only "
+            "when IAI_MCP_STORE names the IAI root directory path."
+        ),
     )
     p_capture.add_argument("text", help="Memory text to store")
     p_capture.add_argument(
         "--session-id",
         default=None,
-        help="Session identifier (default '-')",
+        help="session identifier for provenance (default: - when omitted)",
     )
     p_capture.add_argument(
         "--json",
         action="store_true",
         default=False,
-        help="Emit result as JSON on stdout (for programmatic use)",
+        help="emit result as JSON on stdout for programmatic use (default: false)",
     )
     p_capture.set_defaults(func=cmd_capture)
 
@@ -529,7 +538,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--limit",
         type=int,
         default=5,
-        help="Max memories to ground the answer (default 5)",
+        help="max memories/rows to ground the answer (default: 5)",
     )
     p_ask.set_defaults(func=cmd_ask)
 
@@ -545,25 +554,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "last",
         help="Show the most-recent user-turn records, time-descending",
         description="Return the N most-recent role:user turns from the store. "
-        "Optionally filter to a single session with --session.",
+        "Optionally filter to a single session with --session. Reads "
+        "IAI_MCP_STORE when set (default: ~/.iai-mcp).",
     )
     p_last.add_argument(
         "--n",
         type=int,
         default=5,
-        help="Number of turns to return (default 5)",
+        help="number of turns/rows to return (default: 5)",
     )
     p_last.add_argument(
         "--session",
         default=None,
         metavar="SESSION_ID",
-        help="Filter to a specific session UUID",
+        help="filter to a specific session UUID (default: all sessions)",
     )
     p_last.add_argument(
         "--json",
         action="store_true",
         default=False,
-        help="Emit turns as a JSON object on stdout (for programmatic use)",
+        help="emit turns as a JSON object on stdout for programmatic use (default: false)",
     )
     p_last.set_defaults(func=cmd_last)
 

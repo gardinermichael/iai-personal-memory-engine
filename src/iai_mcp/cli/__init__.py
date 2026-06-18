@@ -354,8 +354,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "OR --resume / --rollback a partial reembed migration"
         ),
     )
-    m.add_argument("--from", dest="from_", type=int, default=1)
-    m.add_argument("--to", type=int, default=2)
+    m.add_argument(
+        "--from",
+        dest="from_",
+        type=int,
+        default=1,
+        help="source schema version number (default: 1)",
+    )
+    m.add_argument(
+        "--to",
+        type=int,
+        default=2,
+        help="target schema version number (default: 2)",
+    )
     m.add_argument("--dry-run", action="store_true")
     m.add_argument("--verbose", "-v", action="store_true")
     m.add_argument(
@@ -395,13 +406,23 @@ def _build_parser() -> argparse.ArgumentParser:
             "mode, uid, length validation, passphrase-fallback flag"
         ),
     )
-    cs.add_argument("--user-id", dest="user_id", default="default")
+    cs.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     cs.set_defaults(func=cmd_crypto_status)
 
     cr = crypto_sub.add_parser(
         "rotate", help="rotate encryption key + re-encrypt all records"
     )
-    cr.add_argument("--user-id", dest="user_id", default="default")
+    cr.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     cr.set_defaults(func=cmd_crypto_rotate)
 
     mtf = crypto_sub.add_parser(
@@ -411,14 +432,19 @@ def _build_parser() -> argparse.ArgumentParser:
             "and write to .crypto.key file (interactive Terminal only)"
         ),
     )
-    mtf.add_argument("--user-id", dest="user_id", default="default")
+    mtf.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     mtf_group = mtf.add_mutually_exclusive_group()
     mtf_group.add_argument(
         "--keep-keychain",
         dest="keep_keychain",
         action="store_true",
         default=True,
-        help="leave the existing macOS Keychain entry in place (default)",
+        help="leave the existing macOS Keychain entry in place (default: true)",
     )
     mtf_group.add_argument(
         "--delete-keychain",
@@ -435,7 +461,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "(fresh installs only — refuses if file exists)"
         ),
     )
-    ci.add_argument("--user-id", dest="user_id", default="default")
+    ci.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     ci.set_defaults(func=cmd_crypto_init)
 
     rwpk = crypto_sub.add_parser(
@@ -451,7 +482,12 @@ def _build_parser() -> argparse.ArgumentParser:
         required=True,
         help="path to exactly 32 raw AES key bytes (same format as .crypto.key)",
     )
-    rwpk.add_argument("--user-id", dest="user_id", default="default")
+    rwpk.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     rwpk.add_argument(
         "--dry-run",
         action="store_true",
@@ -466,7 +502,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "marker (preserves embeddings, edges, metadata)"
         ),
     )
-    cred.add_argument("--user-id", dest="user_id", default="default")
+    cred.add_argument(
+        "--user-id",
+        dest="user_id",
+        default="default",
+        help="user id used to locate the crypto key namespace (default: default)",
+    )
     cred.set_defaults(func=cmd_crypto_redact_undecryptable)
 
     t = sub.add_parser(
@@ -477,7 +518,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--since",
         type=int,
         default=None,
-        help="weeks back to include (default: all history)",
+        help="lookback window in weeks (default: all history)",
     )
     t.set_defaults(func=cmd_trajectory)
 
@@ -494,10 +535,20 @@ def _build_parser() -> argparse.ArgumentParser:
             "Used by the Stop hook for ambient WRITE-side observation capture."
         ),
     )
-    cap.add_argument("transcript_path", help="path to the Claude Code JSONL transcript file")
-    cap.add_argument("--session-id", default="-", help="session id for provenance")
+    cap.add_argument(
+        "transcript_path",
+        help=(
+            "path to an existing Claude Code JSONL transcript file; may be "
+            "absolute or relative to the current working directory"
+        ),
+    )
+    cap.add_argument(
+        "--session-id",
+        default="-",
+        help="session id for provenance (default: -)",
+    )
     cap.add_argument("--max-turns", type=int, default=200,
-                     help="cap on turns to scan (default 200; older turns skipped)")
+                     help="cap on turns to scan, in transcript turns (default: 200; older turns skipped)")
     cap.add_argument(
         "--no-spawn",
         action="store_true",
@@ -506,7 +557,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Hook-only mode: try connect with 250ms timeout. On miss, write "
             "transcript to ~/.iai-mcp/.deferred-captures/ and exit 0 within 2s. "
             "NEVER spawn daemon. Used by ~/.claude/hooks/iai-mcp-session-capture.sh "
-            "to eliminate spawn vector."
+            "to eliminate spawn vector. (default: false)"
         ),
     )
     cap.set_defaults(func=cmd_capture_transcript)
@@ -518,13 +569,20 @@ def _build_parser() -> argparse.ArgumentParser:
             "{session_id}.live.jsonl. UserPromptSubmit-hook backend."
         ),
     )
-    ctd.add_argument("--session-id", required=True)
-    ctd.add_argument("--transcript-path", required=True)
+    ctd.add_argument("--session-id", required=True, help="session id for provenance")
+    ctd.add_argument(
+        "--transcript-path",
+        required=True,
+        help=(
+            "path to an existing Claude Code JSONL transcript file; may be "
+            "absolute or relative to the current working directory"
+        ),
+    )
     ctd.add_argument(
         "--max-turns-per-call",
         type=int,
         default=200,
-        help="max new turns to process per invocation (default 200)",
+        help="max new turns to process per invocation, in transcript turns (default: 200)",
     )
     ctd.set_defaults(func=cmd_capture_turn_deferred)
 
@@ -535,7 +593,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Hook target for ~/.claude/hooks/iai-mcp-session-recall.sh."
         ),
     )
-    ssp.add_argument("--session-id", default="-", help="session id for provenance")
+    ssp.add_argument("--session-id", default="-", help="session id for provenance (default: -)")
     ssp.set_defaults(func=cmd_session_start)
 
     sris = sub.add_parser(
@@ -546,7 +604,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "only when new memory exists; emit additionalContext JSON on trigger."
         ),
     )
-    sris.add_argument("--session-id", default="-", help="session id for watermark sidecar")
+    sris.add_argument("--session-id", default="-", help="session id for watermark sidecar (default: -)")
     sris.set_defaults(func=cmd_session_refresh_if_stale)
 
     ch = sub.add_parser(
@@ -572,13 +630,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--since",
         type=int,
         default=None,
-        help="weeks back to include (default: all history)",
+        help="lookback window in weeks (default: all history)",
     )
     a.add_argument(
         "--severity",
         choices=["info", "warning", "critical"],
         default=None,
-        help="filter by severity",
+        help="filter by severity: info, warning, or critical (default: all severities)",
     )
     audit_sub = a.add_subparsers(dest="audit_sub")
     for name, helptext in (
@@ -587,11 +645,17 @@ def _build_parser() -> argparse.ArgumentParser:
         ("identity", "s5_* identity events only"),
     ):
         sp = audit_sub.add_parser(name, help=helptext)
-        sp.add_argument("--since", type=int, default=None)
+        sp.add_argument(
+            "--since",
+            type=int,
+            default=None,
+            help="lookback window in weeks (default: all history)",
+        )
         sp.add_argument(
             "--severity",
             choices=["info", "warning", "critical"],
             default=None,
+            help="filter by severity: info, warning, or critical (default: all severities)",
         )
     a.set_defaults(func=cmd_audit)
 
@@ -648,7 +712,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="tail daemon log file (macOS Library/Logs) or journalctl (Linux)",
     )
     dlogs.add_argument("-f", "--follow", action="store_true")
-    dlogs.add_argument("-n", "--lines", type=int, default=50)
+    dlogs.add_argument(
+        "-n",
+        "--lines",
+        type=int,
+        default=50,
+        help="number of log lines/rows to show (default: 50)",
+    )
     dlogs.set_defaults(func=cmd_daemon_logs)
 
     daemon_sub.add_parser(
@@ -659,7 +729,7 @@ def _build_parser() -> argparse.ArgumentParser:
     dpause = daemon_sub.add_parser(
         "pause", help="pause daemon scheduler for N seconds",
     )
-    dpause.add_argument("seconds", type=int)
+    dpause.add_argument("seconds", type=int, help="pause duration, in seconds")
     dpause.set_defaults(func=cmd_daemon_pause)
 
     daemon_sub.add_parser(
@@ -690,8 +760,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "disable-claude",
             "enable-claude",
         ],
+        help=(
+            "setting to change: set-budget (token budget), set-cycle-count "
+            "(cycle count), set-quiet-window (time window), disable-claude, "
+            "or enable-claude"
+        ),
     )
-    dconf.add_argument("value", nargs="?", default=None)
+    dconf.add_argument(
+        "value",
+        nargs="?",
+        default=None,
+        help="value for the selected key, when required (default: none)",
+    )
     dconf.set_defaults(func=cmd_daemon_configure)
 
     sc = sub.add_parser(
@@ -707,21 +787,21 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         default=False,
-        help="(default) print the cleanup diff without mutating the store",
+        help="print the cleanup diff without mutating the store (default: true unless --apply is set)",
     )
     sc_mode.add_argument(
         "--apply",
         action="store_true",
         default=False,
-        help="snapshot the store dir + soft-delete duplicates",
+        help="snapshot the store dir + soft-delete duplicates (default: false)",
     )
     sc.add_argument(
         "--store-path",
         dest="store_path",
         default=None,
         help=(
-            "IAI root directory (defaults to ~/.iai-mcp; Hippo data "
-            "lives at <store-path>/hippo)"
+            "IAI root directory path (default: IAI_MCP_STORE if set, "
+            "otherwise ~/.iai-mcp; Hippo data lives at <store-path>/hippo)"
         ),
     )
     sc.set_defaults(func=cmd_schema_cleanup)
@@ -747,27 +827,28 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         default=False,
-        help="(default) print metrics-only JSON; do NOT call optimize",
+        help="print metrics-only JSON; do NOT call optimize (default: true unless --apply is set)",
     )
     mtn_compact_mode.add_argument(
         "--apply",
         action="store_true",
         default=False,
-        help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage",
+        help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage (default: false)",
     )
     mtn_compact.add_argument(
         "--yes", "-y",
         action="store_true",
         default=False,
-        help="(use with --apply) skip the interactive 'y/N' prompt",
+        help="(use with --apply) skip the interactive 'y/N' prompt (default: false)",
     )
     mtn_compact.add_argument(
         "--store-path",
         dest="store_path",
         default=None,
         help=(
-            "IAI root directory (defaults to ~/.iai-mcp; Hippo data "
-            "lives at <store-path>/hippo). Mirrors `schema-cleanup` flag."
+            "IAI root directory path (default: IAI_MCP_STORE if set, "
+            "otherwise ~/.iai-mcp; Hippo data lives at <store-path>/hippo). "
+            "Mirrors `schema-cleanup` flag."
         ),
     )
     mtn_compact.set_defaults(func=cmd_maintenance_compact_hippo)
@@ -780,27 +861,28 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         default=False,
-        help="(default) print metrics-only JSON; do NOT call optimize",
+        help="print metrics-only JSON; do NOT call optimize (default: true unless --apply is set)",
     )
     mtn_compact_legacy_mode.add_argument(
         "--apply",
         action="store_true",
         default=False,
-        help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage",
+        help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage (default: false)",
     )
     mtn_compact_legacy.add_argument(
         "--yes", "-y",
         action="store_true",
         default=False,
-        help="(use with --apply) skip the interactive 'y/N' prompt",
+        help="(use with --apply) skip the interactive 'y/N' prompt (default: false)",
     )
     mtn_compact_legacy.add_argument(
         "--store-path",
         dest="store_path",
         default=None,
         help=(
-            "IAI root directory (defaults to ~/.iai-mcp; Hippo data "
-            "lives at <store-path>/hippo). Mirrors `schema-cleanup` flag."
+            "IAI root directory path (default: IAI_MCP_STORE if set, "
+            "otherwise ~/.iai-mcp; Hippo data lives at <store-path>/hippo). "
+            "Mirrors `schema-cleanup` flag."
         ),
     )
     mtn_compact_legacy.set_defaults(func=cmd_maintenance_compact_records)
@@ -818,27 +900,28 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         default=False,
-        help="(default) print counts JSON; do NOT write self-loops",
+        help="print counts JSON; do NOT write self-loops (default: true unless --apply is set)",
     )
     mtn_symmetrize_mode.add_argument(
         "--apply",
         action="store_true",
         default=False,
-        help="write missing self-loops at delta=0.1 (hebbian edge_type)",
+        help="write missing self-loops at delta=0.1 (hebbian edge_type; default: false)",
     )
     mtn_symmetrize.add_argument(
         "--yes", "-y",
         action="store_true",
         default=False,
-        help="(use with --apply) skip the interactive 'y/N' prompt",
+        help="(use with --apply) skip the interactive 'y/N' prompt (default: false)",
     )
     mtn_symmetrize.add_argument(
         "--store-path",
         dest="store_path",
         default=None,
         help=(
-            "IAI root directory (defaults to ~/.iai-mcp; Hippo data "
-            "lives at <store-path>/hippo). Mirrors compact-hippo flag."
+            "IAI root directory path (default: IAI_MCP_STORE if set, "
+            "otherwise ~/.iai-mcp; Hippo data lives at <store-path>/hippo). "
+            "Mirrors compact-hippo flag."
         ),
     )
     mtn_symmetrize.set_defaults(func=cmd_maintenance_symmetrize_self_loops)
@@ -856,22 +939,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         default=False,
-        help="run even if quarantined (operator override)",
+        help="run even if quarantined (operator override; default: false)",
     )
     mtn_sleep.add_argument(
         "--reset-quarantine",
         dest="reset_quarantine",
         action="store_true",
         default=False,
-        help="clear quarantine state before running",
+        help="clear quarantine state before running (default: false)",
     )
     mtn_sleep.add_argument(
         "--store-path",
         dest="store_path",
         default=None,
         help=(
-            "IAI root directory (defaults to ~/.iai-mcp; Hippo data "
-            "lives at <store-path>/hippo)"
+            "IAI root directory path (default: IAI_MCP_STORE if set, "
+            "otherwise ~/.iai-mcp; Hippo data lives at <store-path>/hippo)"
         ),
     )
     mtn_sleep.set_defaults(func=cmd_maintenance_sleep_cycle)
@@ -890,13 +973,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--apply",
         action="store_true",
         default=False,
-        help="attempt safe repairs after diagnosis; prompts before each destructive action",
+        help="attempt safe repairs after diagnosis; prompts before each destructive action (default: false)",
     )
     doc.add_argument(
         "--yes", "-y",
         action="store_true",
         default=False,
-        help="(use with --apply) skip confirmation prompts; equivalent to typing 'y' to all",
+        help="(use with --apply) skip confirmation prompts; equivalent to typing 'y' to all (default: false)",
     )
     doc.add_argument(
         "--headless",
@@ -906,7 +989,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "force headless mode (downgrade `(n) HID idle source` and "
             "`(b) socket file fresh` from FAIL to WARN). Auto-detected on "
             "Linux when DISPLAY/WAYLAND_DISPLAY are unset; on macOS use this "
-            "flag explicitly."
+            "flag explicitly. (default: false)"
         ),
     )
     def _cmd_doctor_lazy(args: argparse.Namespace) -> int:
@@ -956,19 +1039,25 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     br.add_argument("--query", required=True, help="cue substring to match")
     br.add_argument(
-        "--limit", type=int, default=20, help="max hits (default 20)"
+        "--limit", type=int, default=20, help="max hits/rows to return (default: 20)"
     )
     br.add_argument(
-        "--processed-only", action="store_true", default=False
+        "--processed-only",
+        action="store_true",
+        default=False,
+        help="search only bank/processed records (default: false)",
     )
     br.add_argument(
-        "--recent-only", action="store_true", default=False
+        "--recent-only",
+        action="store_true",
+        default=False,
+        help="search only bank/recent records (default: false)",
     )
     br.add_argument(
         "--json",
         action="store_true",
         default=True,
-        help="emit JSON to stdout (current default; --no-json is reserved)",
+        help="emit JSON to stdout (--no-json is reserved; default: true)",
     )
     br.set_defaults(func=cmd_bank_recall)
 
@@ -985,7 +1074,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         default=False,
-        help="list terminal files + event counts without inserting or renaming",
+        help="list terminal files + event counts without inserting or renaming (default: false)",
     )
     dpf.set_defaults(func=cmd_drain_permanent_failed)
 

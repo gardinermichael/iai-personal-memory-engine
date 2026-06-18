@@ -560,9 +560,17 @@ def _build_parser() -> argparse.ArgumentParser:
     ch_sub.add_parser("uninstall",
                       help="remove the Stop hook and its settings.json entry"
                       ).set_defaults(func=cmd_capture_hooks_uninstall)
-    ch_sub.add_parser("status",
-                      help="show whether the Stop hook is installed and active"
-                      ).set_defaults(func=cmd_capture_hooks_status)
+    status_parser = ch_sub.add_parser(
+        "status",
+        help="show whether the Stop hook is installed and active",
+    )
+    status_parser.add_argument(
+        "--target",
+        choices=["claude", "codex", "all"],
+        default="claude",
+        help="hook target to inspect (default: claude)",
+    )
+    status_parser.set_defaults(func=cmd_capture_hooks_status)
 
     a = sub.add_parser(
         "audit",

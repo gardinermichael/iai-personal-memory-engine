@@ -15,10 +15,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from iai_mcp.exceptions import NativeError
-
-MAX_DRAIN_EVENTS_PER_RUN = 5000
-
-_LIVE_ACTIVE_RE = re.compile(r"\.live\.jsonl$")
+from iai_mcp.transcript_import import parse_claude_code_jsonl
 
 from iai_mcp.store import MemoryStore
 from iai_mcp.types import (
@@ -28,6 +25,10 @@ from iai_mcp.types import (
 )
 
 log = logging.getLogger(__name__)
+
+MAX_DRAIN_EVENTS_PER_RUN = 5000
+
+_LIVE_ACTIVE_RE = re.compile(r"\.live\.jsonl$")
 
 DEDUP_COS_THRESHOLD = 0.95
 MIN_CAPTURE_LEN = 12
@@ -402,49 +403,39 @@ def capture_transcript(
         return {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 1,
                 "reason": f"transcript not found: {path}"}
 
-    counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0}
-    seen = 0
-    with path.open() as fh:
-        for line in fh:
-            if seen >= max_turns:
-                break
-            seen += 1
-            try:
-                obj = json.loads(line)
-            except (json.JSONDecodeError, ValueError) as exc:
-                log.debug("capture_transcript_json_parse_failed: %s", exc)
-                counts["errors"] += 1
-                continue
-            msg = obj.get("message") if isinstance(obj.get("message"), dict) else obj
-            role = obj.get("type") or msg.get("role", "")
-            if role not in {"user", "assistant"}:
-                continue
-            content = msg.get("content", "")
-            if isinstance(content, list):
-                text_parts = []
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
-                text = "\n".join(text_parts).strip()
-            else:
-                text = str(content).strip()
-            if not text:
-                continue
-            result = capture_turn(
-                store,
-                cue=f"session {session_id} turn {seen}",
-                text=text,
-                tier="episodic",
-                session_id=session_id,
-                role=role,
-                ts=obj.get("timestamp"),
-                source_uuid=obj.get("uuid"),
-            )
-            status = result.get("status", "skipped")
-            if status in counts:
-                counts[status] += 1
-            else:
-                counts["skipped"] += 1
+    adapted = parse_claude_code_jsonl(path, session_id=session_id, max_turns=max_turns)
+    counts = {
+        "inserted": 0,
+        "reinforced": 0,
+        "skipped": (
+            adapted.stats.skipped_unsupported
+            + adapted.stats.skipped_empty_text
+            + adapted.stats.skipped_bad_role
+        ),
+        "errors": adapted.stats.skipped_malformed,
+    }
+    for record in adapted.records:
+        if _is_noise(record.text):
+            counts["skipped"] += 1
+            continue
+        result = capture_turn(
+            store,
+            cue=(
+                f"{record.source_host} session {record.session_id} "
+                f"line {record.line_number}"
+            ),
+            text=record.text,
+            tier="episodic",
+            session_id=record.session_id,
+            role=record.role,
+            ts=record.timestamp,
+            source_uuid=record.source_uuid,
+        )
+        status = result.get("status", "skipped")
+        if status in counts:
+            counts[status] += 1
+        else:
+            counts["skipped"] += 1
 
     return counts
 
@@ -882,7 +873,7 @@ def drain_deferred_captures(store: MemoryStore) -> dict[str, int]:
                         log.debug("insert_failed_skip_log_write_failed: %s", exc)
                     counts["files_failed"] += 1
                     continue
-                failed_path = _advance_failed_path(
+                _advance_failed_path(
                     work_path,
                     store,
                     first_error=file_first_error or "unknown",
@@ -914,7 +905,7 @@ def drain_deferred_captures(store: MemoryStore) -> dict[str, int]:
                         log.debug("exception_skip_log_write_failed: %s", exc)
                     counts["files_failed"] += 1
                     continue
-                failed_path = _advance_failed_path(
+                _advance_failed_path(
                     work_path,
                     store,
                     first_error=file_first_error or repr(e),

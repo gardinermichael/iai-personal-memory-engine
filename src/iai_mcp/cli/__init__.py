@@ -385,6 +385,36 @@ def _build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser(
         "crypto",
         help="encryption key management",
+        description="""\
+Manage encryption keys and encrypted record recovery workflows.
+
+The crypto commands create and inspect the local file-backed key, rotate all
+encrypted records to a new key, recover records with a prior raw key file,
+migrate legacy macOS Keychain material to the file backend, and redact data
+that cannot be decrypted.
+""",
+        epilog="""\
+Examples:
+  iai-mcp crypto status
+  iai-mcp crypto init --user-id default
+  iai-mcp crypto rotate
+  iai-mcp crypto recover-with-prior-key --prior-key-file ./old.crypto.key --dry-run
+  iai-mcp crypto recover-with-prior-key --prior-key-file ./old.crypto.key
+  iai-mcp crypto migrate-to-file --keep-keychain
+  iai-mcp crypto redact-undecryptable
+
+Side effects:
+  init creates a fresh .crypto.key file and refuses to overwrite an existing key.
+  rotate re-encrypts all records under a new key.
+  recover-with-prior-key stages records, decrypts with current/prior keys, then
+    atomically swaps recovered data back under the current key; --dry-run only
+    reports affected rows.
+  migrate-to-file may write .crypto.key and can delete the legacy Keychain entry
+    when --delete-keychain is used.
+  redact-undecryptable is destructive: undecryptable literal text is replaced by
+    a redaction marker while embeddings, edges, and metadata are preserved.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     crypto_sub = c.add_subparsers(dest="crypto_cmd", required=True)
 
@@ -552,6 +582,30 @@ def _build_parser() -> argparse.ArgumentParser:
     ch = sub.add_parser(
         "capture-hooks",
         help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
+        description="""\
+Install, remove, or inspect assistant capture hooks.
+
+Supported targets are Claude Code settings under ~/.claude and Claude Desktop's
+MCP server configuration when that config directory is present. The installer
+copies the iai-mcp wrapper scripts into ~/.claude/hooks/ and registers the Stop,
+UserPromptSubmit, and session recall hooks needed for ambient transcript capture
+and recall refresh.
+""",
+        epilog="""\
+Examples:
+  iai-mcp capture-hooks status
+  iai-mcp capture-hooks install
+  iai-mcp capture-hooks uninstall
+
+Side effects:
+  install creates/updates hook scripts in ~/.claude/hooks/, patches Claude Code
+    settings.json hook entries, and may add/update the iai-mcp server entry in
+    Claude Desktop config when available.
+  uninstall removes only the iai-mcp-managed hook entries/scripts and leaves
+    unrelated user hooks or assistant configuration intact.
+  status reports detected files and active registrations without mutating state.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
     ch_sub.add_parser("install",
@@ -598,6 +652,41 @@ def _build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser(
         "daemon",
         help="sleep daemon: install/uninstall/start/stop/status/logs/...",
+        description=f"""\
+Manage the iai-mcp sleep daemon as a user service.
+
+On macOS, install/uninstall manages the launchd agent at:
+  {LAUNCHD_TARGET}
+
+On Linux, install/uninstall manages the systemd user unit at:
+  {SYSTEMD_TARGET}
+
+The daemon listens on the Unix socket:
+  {SOCKET_PATH}
+
+Use status for a socket round-trip health check, logs for launchd/journal output,
+and configure/pause/resume/force-rem for scheduler control.
+""",
+        epilog="""\
+Examples:
+  iai-mcp daemon install --yes
+  iai-mcp daemon start
+  iai-mcp daemon status
+  iai-mcp daemon logs -n 100 --follow
+  iai-mcp daemon pause 3600
+  iai-mcp daemon resume
+  iai-mcp daemon stop
+  iai-mcp daemon uninstall --yes
+
+Side effects:
+  install writes a launchd plist or systemd user unit and records consent.
+  start loads/kickstarts the user service; stop sends SIGTERM via launchctl or
+    systemctl and should let the daemon exit cleanly.
+  uninstall removes service files and daemon state files.
+  logs reads ~/Library/Logs output on macOS or journalctl --user output on Linux.
+  force-rem triggers one out-of-schedule REM cycle through the daemon socket.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     daemon_sub = d.add_subparsers(dest="daemon_cmd", required=True)
 
@@ -732,6 +821,35 @@ def _build_parser() -> argparse.ArgumentParser:
             "one-shot maintenance ops. Currently: compact-hippo "
             "(PRAGMA wal_checkpoint + VACUUM + hnswlib rebuild)."
         ),
+        description="""\
+Run one-shot maintenance operations for the local memory store.
+
+Use compact-hippo when storage has grown or after heavy write activity; it
+checkpoints WAL data, vacuums SQLite storage, and rebuilds hnswlib indexes.
+Use sleep-cycle to run the normal consolidation pipeline on demand instead of
+waiting for the daemon scheduler. Use schema-cleanup to remove duplicate schema
+records, and symmetrize-self-loops to backfill legacy Hebbian self-loop edges.
+""",
+        epilog="""\
+Examples:
+  iai-mcp maintenance compact-hippo --dry-run
+  iai-mcp daemon stop
+  iai-mcp maintenance compact-hippo --apply --yes
+  iai-mcp maintenance sleep-cycle --store-path ~/.iai-mcp
+  iai-mcp maintenance sleep-cycle --reset-quarantine
+  iai-mcp schema-cleanup --dry-run
+  iai-mcp schema-cleanup --apply
+
+Side effects:
+  compact-hippo/compact-records require the daemon to be stopped; --apply mutates
+    storage by checkpointing, vacuuming, and rebuilding indexes.
+  sleep-cycle runs schema mining, knob tuning, dream decay, Hippo optimization,
+    and record compaction once; --reset-quarantine clears quarantine state.
+  schema-cleanup lives as a top-level command; --apply snapshots the store and
+    soft-deletes duplicate schema records.
+  symmetrize-self-loops --apply writes missing self-loop edges.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     mtn_sub = mtn.add_subparsers(dest="maintenance_cmd", required=True)
     mtn_compact = mtn_sub.add_parser(
@@ -885,6 +1003,30 @@ def _build_parser() -> argparse.ArgumentParser:
             "respawn daemon). With --apply --yes, skip confirmations. "
             "Exit 0=all green, 1=any FAIL, 2=--apply tried but FAIL persists."
         ),
+        description="""\
+Check iai-mcp environment, store, and daemon health.
+
+doctor validates the daemon socket and process state, detects duplicate socket
+binders, checks service/log/state expectations, and reports store/environment
+conditions that can prevent capture or consolidation from working correctly.
+""",
+        epilog="""\
+Examples:
+  iai-mcp doctor
+  iai-mcp doctor --headless
+  iai-mcp doctor --apply
+  iai-mcp doctor --apply --yes
+
+Side effects:
+  Without --apply, doctor is read-only.
+  --apply may mutate state by unlinking a stale socket, killing duplicate daemon
+    binders, cleaning orphaned files, or respawning the daemon.
+  --yes skips repair confirmations; use it only when the selected --apply repairs
+    are acceptable in non-interactive runs.
+  --headless changes diagnosis severity for display/HID checks but does not
+    mutate state by itself.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     doc.add_argument(
         "--apply",

@@ -210,6 +210,70 @@ You should see a `rc=0` line. That's your first memory.
 
 ---
 
+### Import old sessions after a fresh install
+
+If you installed IAI after you already had Claude Code or Codex history, you can
+backfill old transcript files into the active IAI store. Start with a no-write
+preview so you can see what would be imported:
+
+```bash
+find "$HOME/.claude/projects" "$HOME/.codex/sessions" \
+  -type f -name '*.jsonl' -print 2>/dev/null | sort
+```
+
+Import Claude Code transcripts:
+
+```bash
+find "$HOME/.claude/projects" -type f -name '*.jsonl' -print0 2>/dev/null | \
+  xargs -0 -n 1 iai-mcp capture-transcript --no-spawn
+```
+
+Import Codex transcripts:
+
+```bash
+find "$HOME/.codex/sessions" -type f -name '*.jsonl' -print0 2>/dev/null | \
+  xargs -0 -n 1 iai-mcp capture-transcript --no-spawn
+```
+
+Import from a manually specified directory:
+
+```bash
+OLD_TRANSCRIPTS_DIR="/path/to/old/transcripts"
+find "$OLD_TRANSCRIPTS_DIR" -type f -name '*.jsonl' -print0 | \
+  xargs -0 -n 1 iai-mcp capture-transcript --no-spawn
+```
+
+Imports write to the active IAI store: normally `~/.iai-mcp`, or the directory
+named by `IAI_MCP_STORE` if that environment variable is set for the command.
+For example, to backfill into a non-default store:
+
+```bash
+IAI_MCP_STORE="/path/to/store" iai-mcp capture-transcript --no-spawn /path/to/session.jsonl
+```
+
+Transcript formats are owned by the host applications, not by IAI, and may
+change without notice. This is especially true for Codex transcripts, so treat
+Codex imports as best-effort and re-run the dry-run discovery command after host
+upgrades.
+
+After importing, verify that the store is reachable and recent turns appear:
+
+```bash
+iai status
+iai last --limit 10
+iai recall "something from an old session"
+```
+
+If you want the imported raw episodic turns promoted into longer-lived summaries
+right away instead of waiting for the normal idle cycle, run the maintenance
+sleep pipeline once:
+
+```bash
+iai-mcp maintenance sleep-cycle
+```
+
+---
+
 ## Usage
 
 You do not call `iai-mcp` directly during a session. Once it's connected:

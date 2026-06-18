@@ -499,6 +499,11 @@ def _build_parser() -> argparse.ArgumentParser:
     cap.add_argument("--max-turns", type=int, default=200,
                      help="cap on turns to scan (default 200; older turns skipped)")
     cap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="parse and count transcript turns without writing to the memory store",
+    )
+    cap.add_argument(
         "--no-spawn",
         action="store_true",
         default=False,

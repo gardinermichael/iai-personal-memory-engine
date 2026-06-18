@@ -250,7 +250,14 @@ def cmd_capture_transcript(args: argparse.Namespace) -> int:
             args.transcript_path,
             session_id=args.session_id,
             max_turns=args.max_turns,
+            dry_run=bool(getattr(args, "dry_run", False)),
         )
+        if counts.get("capped"):
+            print(
+                f"warning: max-turns cap reached ({counts.get('cap')}); "
+                "remaining transcript lines were skipped",
+                file=_sys.stderr,
+            )
         print(json.dumps(counts, ensure_ascii=False))
         return 0
     except Exception as e:

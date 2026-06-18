@@ -7,6 +7,8 @@ import importlib.resources as _res
 import json
 import logging
 import os
+import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -322,6 +324,31 @@ def cmd_capture_turn_deferred(args: argparse.Namespace) -> int:
         return 0
 
 
+def _write_cli_path_cache() -> None:
+    """Best-effort cache of the iai-mcp CLI path for non-interactive hooks."""
+    try:
+        cli_path = shutil.which("iai-mcp")
+        if cli_path is None:
+            candidate = Path(sys.argv[0]).expanduser()
+            try:
+                candidate = candidate.resolve()
+            except OSError:
+                return
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                cli_path = str(candidate)
+
+        if cli_path is None:
+            return
+
+        cache_dir = Path.home() / ".iai-mcp"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / ".cli-path"
+        resolved = str(Path(cli_path).expanduser().resolve())
+        cache_path.write_text(resolved + "\n")
+    except Exception as exc:
+        print(f"WARN: unable to write CLI path cache: {exc}", file=sys.stderr)
+
+
 def _capture_hook_paths() -> tuple:
     src = _res.files("iai_mcp") / "_deploy" / "hooks" / "iai-mcp-session-capture.sh"
     dst = Path.home() / ".claude" / "hooks" / "iai-mcp-session-capture.sh"
@@ -598,6 +625,8 @@ def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
 
     print("\nNext: fully quit + relaunch Claude Code AND Claude Desktop")
     print("      so both pick up the registration (macOS: `killall Claude`).")
+    _write_cli_path_cache()
+
     print("Verify: iai-mcp capture-hooks status")
     return 0
 

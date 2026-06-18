@@ -3,6 +3,7 @@
 #
 # Usage (from repo root or anywhere inside the clone):
 #   bash scripts/install.sh
+#   bash scripts/install.sh --package-manager
 #
 # Does:
 #   1. creates .venv if missing
@@ -11,6 +12,11 @@
 #   4. symlinks ~/.local/bin/iai-mcp -> .venv/bin/iai-mcp so the CLI is
 #      callable from anywhere without activating the venv
 #   5. optionally installs the sleep daemon (launchd on macOS, systemd on Linux)
+#
+#
+# --package-manager is for Homebrew/formula postinstall contexts. It never
+# creates an in-tree venv, never installs editable packages, never writes user
+# bin symlinks, and never registers services.
 #
 # Idempotent. Safe to re-run.
 
@@ -24,6 +30,75 @@ step() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 ok()   { printf '   \033[0;32m✓\033[0m %s\n' "$*"; }
 warn() { printf '   \033[0;33m!\033[0m %s\n' "$*"; }
 die()  { printf '\n\033[0;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
+
+PACKAGE_MANAGER_MODE=0
+for arg in "$@"; do
+    case "${arg}" in
+        --package-manager|--homebrew-postinstall)
+            PACKAGE_MANAGER_MODE=1
+            ;;
+        -h|--help)
+            cat <<'USAGE'
+Usage: bash scripts/install.sh [--package-manager]
+
+Without flags, performs clone-oriented collaborator bootstrap.
+
+Options:
+  --package-manager, --homebrew-postinstall
+      Print package-manager-safe post-install guidance without creating .venv,
+      running pip install -e ., building the TypeScript wrapper, writing
+      ~/.local/bin symlinks, or registering launchd/systemd services.
+USAGE
+            exit 0
+            ;;
+        *)
+            die "unknown argument: ${arg}"
+            ;;
+    esac
+done
+
+print_package_manager_postinstall() {
+    local cli_path
+    cli_path="$(command -v iai-mcp 2>/dev/null || true)"
+
+    step "package-manager post-install"
+    if [ -n "${cli_path}" ]; then
+        ok "iai-mcp is available at ${cli_path}"
+    else
+        warn "iai-mcp is not on PATH yet; open a new shell or ensure your package manager's bin directory is in PATH"
+    fi
+
+    cat <<'POSTINSTALL'
+
+   Homebrew/package-manager installs are intentionally non-mutating:
+     - no in-source .venv is created
+     - no editable `pip install -e .` is run
+     - no ~/.local/bin symlink is written
+     - no launchd/systemd service is registered automatically
+     - no capture hooks are installed automatically
+
+   To enable the background memory daemon when you are ready:
+
+     iai-mcp daemon install
+     iai-mcp daemon start
+     iai-mcp daemon status
+
+   To enable ambient capture + recall hooks:
+
+     iai-mcp capture-hooks install          # Claude Code
+     iai-mcp capture-hooks install --target codex
+     iai-mcp capture-hooks install --target all
+     iai-mcp capture-hooks status
+
+   To connect an MCP host, point it at the packaged wrapper installed by your
+   package manager, or run `iai-mcp doctor` for environment-specific guidance.
+POSTINSTALL
+}
+
+if [[ "${PACKAGE_MANAGER_MODE}" == "1" || "${HOMEBREW_POSTINSTALL:-0}" == "1" || "${IAI_PACKAGE_MANAGER_INSTALL:-0}" == "1" ]]; then
+    print_package_manager_postinstall
+    exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # Sections 1-4: build / venv / pip / npm / symlink.

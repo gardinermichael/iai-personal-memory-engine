@@ -12,6 +12,7 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent
 INSTALL_SH = REPO / "scripts" / "install.sh"
 UNINSTALL_SH = REPO / "scripts" / "uninstall.sh"
+HOMEBREW_POSTINSTALL_SH = REPO / "scripts" / "homebrew-postinstall.sh"
 PLIST_TEMPLATE = REPO / "scripts" / "com.iai-mcp.daemon.plist.template"
 
 
@@ -152,6 +153,81 @@ def test_uninstall_purge_state_dry_run() -> None:
     )
     assert "skipping rm of state files" in result.stdout, (
         f"purge-state DRY_RUN gate did not fire:\n{result.stdout}"
+    )
+
+
+@pytest.mark.skipif(not _bash_available(), reason="bash unavailable")
+def test_install_package_manager_mode_is_non_mutating(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir()
+    env = {
+        **os.environ,
+        "HOME": str(home),
+        "PATH": os.environ.get("PATH", ""),
+    }
+
+    result = subprocess.run(
+        ["bash", str(INSTALL_SH), "--package-manager"],
+        env=env,
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+
+    assert result.returncode == 0, (
+        f"install.sh --package-manager failed:\n--- STDOUT ---\n{result.stdout}\n"
+        f"--- STDERR ---\n{result.stderr}\n"
+    )
+    assert "package-manager post-install" in result.stdout
+    assert "iai-mcp daemon install" in result.stdout
+    assert "iai-mcp capture-hooks install" in result.stdout
+    assert "python venv" not in result.stdout
+    assert "editable install" not in result.stdout
+    assert "TS wrapper build" not in result.stdout
+    assert "global CLI symlink" not in result.stdout
+    assert "daemon service registration" not in result.stdout
+    assert not (home / ".local" / "bin" / "iai-mcp").exists()
+
+
+@pytest.mark.skipif(not _bash_available(), reason="bash unavailable")
+def test_homebrew_postinstall_delegates_to_package_manager_mode(tmp_path: Path) -> None:
+    if not HOMEBREW_POSTINSTALL_SH.exists():
+        pytest.skip(f"{HOMEBREW_POSTINSTALL_SH} missing")
+
+    home = tmp_path / "home"
+    home.mkdir()
+    result = subprocess.run(
+        ["bash", str(HOMEBREW_POSTINSTALL_SH)],
+        env={**os.environ, "HOME": str(home)},
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+
+    assert result.returncode == 0, (
+        f"homebrew-postinstall.sh failed:\n--- STDOUT ---\n{result.stdout}\n"
+        f"--- STDERR ---\n{result.stderr}\n"
+    )
+    assert "Homebrew/package-manager installs are intentionally non-mutating" in result.stdout
+    assert "iai-mcp daemon install" in result.stdout
+    assert "iai-mcp capture-hooks install" in result.stdout
+
+
+@pytest.mark.skipif(not _bash_available(), reason="bash unavailable")
+def test_homebrew_postinstall_sh_syntax_valid() -> None:
+    if not HOMEBREW_POSTINSTALL_SH.exists():
+        pytest.skip(f"{HOMEBREW_POSTINSTALL_SH} missing")
+
+    result = subprocess.run(
+        ["bash", "-n", str(HOMEBREW_POSTINSTALL_SH)],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode == 0, (
+        f"homebrew-postinstall.sh has syntax errors:\n--- STDERR ---\n{result.stderr}"
     )
 
 

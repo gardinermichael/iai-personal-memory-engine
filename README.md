@@ -90,7 +90,52 @@ And unlike cloud memory services, there's no API key, no account, and no telemet
 
 Windows and Linux aren't supported yet — the engine and its native core are macOS-only for now. **Contributions are very welcome:** if you'd like to port iai-mcp to Linux or Windows, open an issue or PR and I'll help however I can.
 
-### Install
+### Homebrew install (coming soon)
+
+The Homebrew formula is planned as the easiest path for macOS users once packaging is published:
+
+```bash
+brew tap CodeAbra/iai && brew install iai-mcp
+```
+
+The initial formula is macOS-focused. Linux and Windows support are still future work, and contributions are welcome.
+
+Prerequisites that still apply after a Homebrew install:
+
+- macOS (Apple Silicon tested)
+- Node.js 18+ for MCP host wrapper/runtime integration
+- An MCP-compatible CLI host — [Claude Code](https://docs.claude.com/en/docs/claude-code/overview), Codex CLI, Gemini CLI, Cursor CLI, and others
+- ~500 MB free disk for local models, indexes, logs, and encrypted memory storage
+
+After installation, set up the local background daemon:
+
+```bash
+iai-mcp daemon install
+iai-mcp daemon status
+iai --version
+```
+
+Then install the ambient capture + recall hooks for your assistant host. For Claude Code:
+
+```bash
+iai-mcp capture-hooks install
+iai-mcp capture-hooks status
+```
+
+For Codex:
+
+```bash
+iai-mcp capture-hooks install --target codex
+iai-mcp capture-hooks status --target codex
+```
+
+To install hooks for both Claude Code and Codex:
+
+```bash
+iai-mcp capture-hooks install --target all
+```
+
+### Install from source
 
 ```bash
 git clone https://github.com/CodeAbra/iai-personal-memory-engine.git

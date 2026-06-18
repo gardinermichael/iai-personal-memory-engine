@@ -467,21 +467,47 @@ def cmd_last(args: argparse.Namespace) -> int:
     return 0
 
 
+def _raw_help_parser(*args, **kwargs) -> argparse.ArgumentParser:
+    """Create an argparse parser that preserves multiline help text."""
+    kwargs.setdefault("formatter_class", argparse.RawDescriptionHelpFormatter)
+    return argparse.ArgumentParser(*args, **kwargs)
+
+
+def _examples(*lines: str) -> str:
+    """Format parser epilog examples consistently."""
+    return "Examples:\n  " + "\n  ".join(lines)
+
+
+def _side_effect_help(label: str, text: str) -> str:
+    """Prefix help with a side-effect label such as read-only/writes memory."""
+    return f"[{label}] {text}"
+
+
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _raw_help_parser(
         prog="iai",
         description="Terminal memory for your agent — recall, capture, ask, status.",
         add_help=True,
+        epilog=_examples(
+            "iai recall \"project decisions\"",
+            "iai capture \"Remember to prefer the SQLite cache path\"",
+            "iai status",
+        ),
     )
     parser.add_argument("--version", action="version", version=f"iai {__version__}")
 
-    sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
+    sub = parser.add_subparsers(
+        dest="cmd",
+        metavar="COMMAND",
+        parser_class=_raw_help_parser,
+    )
 
     p_recall = sub.add_parser(
         "recall",
-        help="Recall memories by natural-language cue",
+        help=_side_effect_help("read-only", "Recall memories by natural-language cue"),
         description="Recall memories. Uses the daemon when alive; falls back "
         "to the offline bank scan when daemon is down.",
+        epilog=_examples('iai recall "where did we leave the migration?"'),
     )
     p_recall.add_argument("cue", help="Natural-language query")
     p_recall.add_argument(
@@ -500,8 +526,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_capture = sub.add_parser(
         "capture",
-        help="Capture one episodic memory",
+        help=_side_effect_help("writes memory", "Capture one episodic memory"),
         description="Write one episodic record to the store via the daemon.",
+        epilog=_examples('iai capture "Use RawDescriptionHelpFormatter for CLI help"'),
     )
     p_capture.add_argument("text", help="Memory text to store")
     p_capture.add_argument(
@@ -519,10 +546,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_ask = sub.add_parser(
         "ask",
-        help="Recall + LLM synthesis grounded in memories",
+        help=_side_effect_help(
+            "read-only",
+            "Recall + LLM synthesis grounded in memories",
+        ),
         description="Recall the top-K memories matching the question, then "
         "synthesize an answer via `claude -p` (subscription-billed). "
         "Prints the answer + a Sources: footer with the cited record ids.",
+        epilog=_examples('iai ask "what was the plan for daemon status?"'),
     )
     p_ask.add_argument("question", help="Natural-language question")
     p_ask.add_argument(
@@ -535,7 +566,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser(
         "status",
-        help="Short health summary (daemon + records + subscription)",
+        help=_side_effect_help(
+            "read-only",
+            "Short health summary (daemon + records + subscription)",
+        ),
         description="User-tier health summary. For the 17-row operator "
         "checklist run `iai-mcp doctor` instead.",
     )
@@ -543,9 +577,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_last = sub.add_parser(
         "last",
-        help="Show the most-recent user-turn records, time-descending",
+        help=_side_effect_help(
+            "read-only",
+            "Show the most-recent user-turn records, time-descending",
+        ),
         description="Return the N most-recent role:user turns from the store. "
         "Optionally filter to a single session with --session.",
+        epilog=_examples("iai last --n 10", "iai last --session SESSION_ID"),
     )
     p_last.add_argument(
         "--n",

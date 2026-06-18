@@ -10,13 +10,15 @@ include rust/iai_mcp_native/iai_mcp_native/py.typed
 # Deploy files: launchd plist, systemd unit, hook scripts
 recursive-include src/iai_mcp/_deploy *
 
-# TS wrapper source — so an sdist-to-wheel rebuild can compile the wrapper
+# TS wrapper source plus prebuilt JS. Release sdists include dist/*.js so
+# downstream packagers (notably Homebrew) can build the Python wheel without
+# running npm during formula builds; clean source checkouts can still rebuild it.
 recursive-include mcp-wrapper/src *
+recursive-include mcp-wrapper/dist *.js
 include mcp-wrapper/package.json
 include mcp-wrapper/package-lock.json
 include mcp-wrapper/tsconfig.json
 prune mcp-wrapper/node_modules
-prune mcp-wrapper/dist
 # Flat stubs beside where an editable-install flat extension resolves
 include src/iai_mcp_native.pyi
 include src/embed.pyi

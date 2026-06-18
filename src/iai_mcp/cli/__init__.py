@@ -332,7 +332,31 @@ from ._daemon import (
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="iai-mcp")
+    parser = argparse.ArgumentParser(
+        prog="iai-mcp",
+        description=(
+            "Operator/admin CLI for the IAI personal memory engine: "
+            "set up encryption, manage the sleep daemon and capture hooks, "
+            "run health checks, and perform maintenance tasks."
+        ),
+        epilog="""
+Common workflows:
+  First setup:
+    iai-mcp crypto init
+    iai-mcp daemon install
+    iai-mcp capture-hooks install
+
+  Health/debug:
+    iai-mcp doctor
+    iai-mcp daemon status
+    iai-mcp daemon logs
+
+  Maintenance:
+    iai-mcp maintenance sleep-cycle
+    iai-mcp maintenance compact-hippo
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     h = sub.add_parser("health", help="show LLM health status")

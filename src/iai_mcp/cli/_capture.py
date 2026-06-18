@@ -335,6 +335,135 @@ def _turn_hook_paths() -> tuple:
     return src, dst
 
 
+def _codex_hook_paths() -> tuple:
+    hooks_dir = Path.home() / ".codex" / "hooks"
+    hooks_json = Path.home() / ".codex" / "hooks.json"
+    return (
+        _res.files("iai_mcp") / "_deploy" / "hooks" / "iai-mcp-session-capture.sh",
+        hooks_dir / "iai-mcp-session-capture.sh",
+        _res.files("iai_mcp") / "_deploy" / "hooks" / "iai-mcp-turn-capture.sh",
+        hooks_dir / "iai-mcp-turn-capture.sh",
+        _res.files("iai_mcp") / "_deploy" / "hooks" / "iai-mcp-session-recall.sh",
+        hooks_dir / "iai-mcp-session-recall.sh",
+        hooks_json,
+    )
+
+
+def _hook_entries_have_command(entries: list, marker: str) -> bool:
+    return any(
+        any(marker in (h.get("command") or "") for h in (entry.get("hooks") or []))
+        for entry in entries
+    )
+
+
+def _remove_hook_commands(entries: list, markers: tuple[str, ...]) -> tuple[list, bool]:
+    kept_entries = []
+    changed = False
+    for entry in entries:
+        hooks = entry.get("hooks") or []
+        kept_hooks = [
+            h for h in hooks
+            if not any(marker in (h.get("command") or "") for marker in markers)
+        ]
+        if len(kept_hooks) != len(hooks):
+            changed = True
+        if kept_hooks:
+            if len(kept_hooks) == len(hooks):
+                kept_entries.append(entry)
+            else:
+                new_entry = dict(entry)
+                new_entry["hooks"] = kept_hooks
+                kept_entries.append(new_entry)
+        elif not hooks:
+            kept_entries.append(entry)
+    return kept_entries, changed
+
+
+def _patch_codex_hooks_config(action: str) -> str:
+    import json as _json
+
+    (
+        _capture_src, capture_dst,
+        _turn_src, turn_dst,
+        _recall_src, recall_dst,
+        hooks_json,
+    ) = _codex_hook_paths()
+    markers = (
+        _CAPTURE_HOOK_MARKER,
+        _TURN_HOOK_MARKER,
+        _SESSION_RECALL_HOOK_MARKER,
+    )
+
+    if action == "uninstall":
+        if not hooks_json.exists():
+            return "Codex: ~/.codex/hooks.json absent — skipped"
+        data = _load_settings(hooks_json)
+        hooks = data.get("hooks", {})
+        changed = False
+        for event in list(hooks):
+            entries = hooks.get(event, [])
+            if not isinstance(entries, list):
+                continue
+            kept, event_changed = _remove_hook_commands(entries, markers)
+            if event_changed:
+                changed = True
+                if kept:
+                    hooks[event] = kept
+                else:
+                    hooks.pop(event, None)
+        if changed:
+            data["hooks"] = hooks
+            hooks_json.write_text(_json.dumps(data, indent=2))
+            return "Codex: removed iai-mcp hooks from ~/.codex/hooks.json"
+        return "Codex: no iai-mcp hooks in ~/.codex/hooks.json — no change"
+
+    hooks_json.parent.mkdir(parents=True, exist_ok=True)
+    data = _load_settings(hooks_json)
+    hooks = data.setdefault("hooks", {})
+
+    registrations = (
+        (
+            "SessionStart",
+            _SESSION_RECALL_HOOK_MARKER,
+            recall_dst,
+            30,
+            "Loading iai memory",
+            "startup|resume|clear|compact",
+        ),
+        (
+            "UserPromptSubmit",
+            _TURN_HOOK_MARKER,
+            turn_dst,
+            5,
+            "Capturing iai turn",
+            None,
+        ),
+        ("Stop", _CAPTURE_HOOK_MARKER, capture_dst, 35, "Capturing iai session", None),
+    )
+    changed = False
+    for event, marker, dst, timeout, status_message, matcher in registrations:
+        entries = hooks.setdefault(event, [])
+        if _hook_entries_have_command(entries, marker):
+            continue
+        entry = {
+            "hooks": [{
+                "type": "command",
+                "command": f"bash {dst}",
+                "timeout": timeout,
+                "statusMessage": status_message,
+            }]
+        }
+        if matcher is not None:
+            entry["matcher"] = matcher
+        entries.append(entry)
+        changed = True
+
+    if changed or not hooks_json.exists():
+        hooks_json.write_text(_json.dumps(data, indent=2))
+        return "Codex: patched ~/.codex/hooks.json (iai-mcp hooks registered)"
+    return "Codex: ~/.codex/hooks.json already has iai-mcp hooks — no change"
+
+
 def _resolve_wrapper_path() -> Path:
     import iai_mcp as _pkg
 
@@ -571,6 +700,24 @@ def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
         dst_recall.chmod(dst_recall.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP)
         print(f"installed: {dst_recall}")
 
+        (
+            _codex_capture_src, codex_capture_dst,
+            _codex_turn_src, codex_turn_dst,
+            _codex_recall_src, codex_recall_dst,
+            _codex_hooks_json,
+        ) = _codex_hook_paths()
+        for codex_src, codex_dst in (
+            (src, codex_capture_dst),
+            (turn_src, codex_turn_dst),
+            (src_recall, codex_recall_dst),
+        ):
+            codex_dst.parent.mkdir(parents=True, exist_ok=True)
+            codex_dst.write_bytes(codex_src.read_bytes())
+            codex_dst.chmod(codex_dst.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP)
+            print(f"installed: {codex_dst}")
+        codex_msg = _patch_codex_hooks_config("install")
+        print(codex_msg)
+
         ss_list = data["hooks"].setdefault("SessionStart", [])
         recall_cmd = f"bash {dst_recall}"
         already_recall = any(
@@ -626,6 +773,21 @@ def cmd_capture_hooks_uninstall(args: argparse.Namespace) -> int:
         print(f"removed: {dst_recall}")
     else:
         print(f"(not present) {dst_recall}")
+
+    (
+        _codex_capture_src, codex_capture_dst,
+        _codex_turn_src, codex_turn_dst,
+        _codex_recall_src, codex_recall_dst,
+        _codex_hooks_json,
+    ) = _codex_hook_paths()
+    for codex_dst in (codex_capture_dst, codex_turn_dst, codex_recall_dst):
+        if codex_dst.exists():
+            codex_dst.unlink()
+            print(f"removed: {codex_dst}")
+        else:
+            print(f"(not present) {codex_dst}")
+    codex_msg = _patch_codex_hooks_config("uninstall")
+    print(codex_msg)
 
     if settings.exists():
         data = _load_settings(settings)

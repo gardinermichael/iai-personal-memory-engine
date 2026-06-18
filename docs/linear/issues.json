@@ -1,0 +1,1450 @@
+{
+  "meta": {
+    "title": "Linear import bundle - iai-personal-memory-engine PR triage",
+    "description": "Machine-readable companion to the Outline 'iai - PR Triage -> Linear' gameplan. One object per issue in `issues[]`, plus the exact project names, cross-cutting labels, and priority mapping an importer needs. Feed this to a Linear-connected agent (Option A in the guide) for a deterministic import.",
+    "generatedAt": "2026-06-18",
+    "source": "Outline collection 'iai - PR Triage -> Linear' (Overview + Project 1-4 docs)",
+    "sourceUrl": "https://outline.baffler.zone/doc/overview-amp-linear-import-guide-2QqqGdNnKt",
+    "repo": "gardinermichael/iai-personal-memory-engine",
+    "prScope": "32 open PRs (#1-#32); ~203 unresolved review comments scanned 2026-06-18",
+    "reviewBots": {
+      "gemini": "gemini-code-assist",
+      "codex": "chatgpt-codex-connector"
+    },
+    "prUrlTemplate": "https://github.com/gardinermichael/iai-personal-memory-engine/pull/{n}",
+    "priorityMap": {
+      "P1": {
+        "linearPriority": 1,
+        "linearPriorityLabel": "Urgent",
+        "meaning": "broken / data-loss"
+      },
+      "P2": {
+        "linearPriority": 3,
+        "linearPriorityLabel": "Medium",
+        "meaning": "correctness / robustness"
+      },
+      "P3": {
+        "linearPriority": 4,
+        "linearPriorityLabel": "Low",
+        "meaning": "nit / enhancement"
+      }
+    },
+    "typeLabelsSuggested": {
+      "note": "Four issues carry a non-cross-cutting 'type' tag from the gameplan (chore/perf/build/refactor). They are NOT in the canonical label set below and are exposed per-issue in the `type` field. Create them as labels only if you want them; the importer is reliable without them.",
+      "values": [
+        "chore",
+        "perf",
+        "build",
+        "refactor"
+      ]
+    },
+    "counts": {
+      "projects": 4,
+      "labels": 12,
+      "issues": 47,
+      "byPriority": {
+        "P1": 15,
+        "P2": 28,
+        "P3": 4
+      },
+      "byProject": {
+        "Capture Hooks (Claude + Codex)": 14,
+        "Transcript / Session Import": 16,
+        "Packaging & Installation (Homebrew)": 9,
+        "CLI Help Text & Docs": 8
+      }
+    },
+    "sourceCountDiscrepancy": "The Overview prose reads 'P1=16 · P2=25 · P3=6', and the Project 4 header reads '1xP1, 5xP2, 2xP3'. Those are stale aggregate miscounts. The authoritative per-issue priority tags (used here) sum to P1=15, P2=28, P3=4 (47 total). The Overview's own per-issue tables agree with this JSON.",
+    "fieldGuide": {
+      "id": "Stable triage id (H/I/K/C + number) tracing back to the gameplan docs.",
+      "title": "Issue title (no priority prefix; priority is a separate field).",
+      "project": "Exact Linear project name to create/assign.",
+      "priority": "Gameplan tag P1/P2/P3.",
+      "linearPriority": "Linear API priority integer (1=Urgent, 3=Medium, 4=Low).",
+      "labels": "Subset of the canonical cross-cutting labels to apply.",
+      "type": "Optional non-cross-cutting category (chore/perf/build/refactor) or null.",
+      "prs": "Source PR numbers.",
+      "prLinks": "Fully-qualified GitHub PR URLs.",
+      "reviewers": "Which review bot(s) raised it: gemini and/or codex (empty if unattributed).",
+      "impact": "Why it matters / what breaks (plain text).",
+      "affected": "Affected file(s) and approximate line(s).",
+      "source": "Original 'From:' attribution (PR + reviewer + file:line).",
+      "body": "Ready-to-paste Markdown issue description (impact + affected + source + PR links)."
+    }
+  },
+  "projects": [
+    {
+      "key": "1",
+      "name": "Capture Hooks (Claude + Codex)",
+      "doc": "https://outline.baffler.zone/doc/project-1-capture-hooks-claude-codex-ACh943Jm3W",
+      "prs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "issueCount": 14
+    },
+    {
+      "key": "2",
+      "name": "Transcript / Session Import",
+      "doc": "https://outline.baffler.zone/doc/project-2-transcript-session-import-xAtrosVadX",
+      "prs": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        27,
+        28,
+        30
+      ],
+      "issueCount": 16
+    },
+    {
+      "key": "3",
+      "name": "Packaging & Installation (Homebrew)",
+      "doc": "https://outline.baffler.zone/doc/project-3-packaging-amp-installation-homebrew-bDlt1n4Y6o",
+      "prs": [
+        12,
+        13,
+        14,
+        15
+      ],
+      "issueCount": 9
+    },
+    {
+      "key": "4",
+      "name": "CLI Help Text & Docs",
+      "doc": "https://outline.baffler.zone/doc/project-4-cli-help-text-amp-docs-AXvIkbmJdw",
+      "prs": [
+        22,
+        23,
+        24,
+        25,
+        26,
+        29,
+        31,
+        32
+      ],
+      "issueCount": 8
+    }
+  ],
+  "labels": [
+    "codex",
+    "claude",
+    "data-loss",
+    "crash",
+    "idempotency",
+    "py311",
+    "homebrew",
+    "docs",
+    "help-text",
+    "shell-script",
+    "daemon-lock",
+    "store-path"
+  ],
+  "issues": [
+    {
+      "id": "H1",
+      "title": "Wire `--target {claude,codex,all}` through capture-hooks install/uninstall/status",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "codex",
+        "claude"
+      ],
+      "type": null,
+      "prs": [
+        2,
+        3,
+        4,
+        5,
+        8,
+        10,
+        11
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/2",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/3",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/4",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/5",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/8",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/10",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/11"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "`iai-mcp capture-hooks install|status --target codex|all` exits with `error: unrecognized arguments: --target` because the subparser registers no such option; and where the option *is* added, the handlers (`cmd_capture_hooks_install`, `_uninstall`, `_status`) never read `args.target` and call path helpers that hard-code `~/.claude`. Net effect: Codex/all targeting is a no-op, and the documented commands in the install scripts fail outright.",
+      "affected": "`src/iai_mcp/cli/__init__.py` (capture-hooks subparser, ~L558-561), `src/iai_mcp/cli/_capture.py` (the three handlers, ~L718).",
+      "source": "#2 (gemini `cli/__init__.py:561`; codex `cli/__init__.py:558`), #4 (codex `_capture.py:718`), #5 (codex `codex_install.sh:36`), #10 (codex `install_hosts.sh:117`); also surfaced in #3, #8, #11. This is the single highest-leverage fix - it clears comments across the Hooks, Packaging, and Docs PRs.",
+      "body": "**Impact:** `iai-mcp capture-hooks install|status --target codex|all` exits with `error: unrecognized arguments: --target` because the subparser registers no such option; and where the option *is* added, the handlers (`cmd_capture_hooks_install`, `_uninstall`, `_status`) never read `args.target` and call path helpers that hard-code `~/.claude`. Net effect: Codex/all targeting is a no-op, and the documented commands in the install scripts fail outright.\n\n**Affected:** `src/iai_mcp/cli/__init__.py` (capture-hooks subparser, ~L558-561), `src/iai_mcp/cli/_capture.py` (the three handlers, ~L718).\n\n**Source (reviewers + PRs):** #2 (gemini `cli/__init__.py:561`; codex `cli/__init__.py:558`), #4 (codex `_capture.py:718`), #5 (codex `codex_install.sh:36`), #10 (codex `install_hosts.sh:117`); also surfaced in #3, #8, #11. This is the single highest-leverage fix - it clears comments across the Hooks, Packaging, and Docs PRs.\n\n**PR links:** [#2](https://github.com/gardinermichael/iai-personal-memory-engine/pull/2) · [#3](https://github.com/gardinermichael/iai-personal-memory-engine/pull/3) · [#4](https://github.com/gardinermichael/iai-personal-memory-engine/pull/4) · [#5](https://github.com/gardinermichael/iai-personal-memory-engine/pull/5) · [#8](https://github.com/gardinermichael/iai-personal-memory-engine/pull/8) · [#10](https://github.com/gardinermichael/iai-personal-memory-engine/pull/10) · [#11](https://github.com/gardinermichael/iai-personal-memory-engine/pull/11)\n\n---\n_Triage ref: H1 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H2",
+      "title": "Codex capture installs Claude-format scripts; add a Codex rollout parser",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "codex"
+      ],
+      "type": null,
+      "prs": [
+        3,
+        4,
+        11
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/3",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/4",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/11"
+      ],
+      "reviewers": [
+        "codex",
+        "gemini"
+      ],
+      "impact": "For `--target codex`, the bundled `iai-mcp-turn-capture.sh` / `iai-mcp-session-capture.sh` parse Claude-style JSONL (top-level `type: user/assistant` or `message.role`, plus `~/.claude/projects` scanning). Current Codex rollout JSONL is `session_meta`/`response_item` records with the message under `payload`, and the Codex hook contract exposes `prompt` (UserPromptSubmit) and `last_assistant_message` (Stop). So every Codex conversation line is skipped - capture silently produces nothing. Hook templates also still hard-code `~/.claude/projects` for scan/fallback.",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L438, L540, L543), hook templates; Codex parsing path.",
+      "source": "#3 (codex `_capture.py:543`), #4 (codex `_capture.py:438`), #11 (codex `_capture.py:540`; gemini `_capture.py:330`). Closely related to I6 in Project 2 (same Codex format gap on the import path).",
+      "body": "**Impact:** For `--target codex`, the bundled `iai-mcp-turn-capture.sh` / `iai-mcp-session-capture.sh` parse Claude-style JSONL (top-level `type: user/assistant` or `message.role`, plus `~/.claude/projects` scanning). Current Codex rollout JSONL is `session_meta`/`response_item` records with the message under `payload`, and the Codex hook contract exposes `prompt` (UserPromptSubmit) and `last_assistant_message` (Stop). So every Codex conversation line is skipped - capture silently produces nothing. Hook templates also still hard-code `~/.claude/projects` for scan/fallback.\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L438, L540, L543), hook templates; Codex parsing path.\n\n**Source (reviewers + PRs):** #3 (codex `_capture.py:543`), #4 (codex `_capture.py:438`), #11 (codex `_capture.py:540`; gemini `_capture.py:330`). Closely related to I6 in Project 2 (same Codex format gap on the import path).\n\n**PR links:** [#3](https://github.com/gardinermichael/iai-personal-memory-engine/pull/3) · [#4](https://github.com/gardinermichael/iai-personal-memory-engine/pull/4) · [#11](https://github.com/gardinermichael/iai-personal-memory-engine/pull/11)\n\n---\n_Triage ref: H2 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H3",
+      "title": "Codex `Stop` hook uses the session-end script (turn-scoped -> duplicate re-emit)",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "codex"
+      ],
+      "type": null,
+      "prs": [
+        11
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/11"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "`--target codex` registers `iai-mcp-session-capture.sh` as the Codex `Stop` hook. That script rolls over `.live.jsonl` and removes `{session_id}.offset` as if the session ended - but Codex `Stop` is turn-scoped and fires after every assistant turn. The next `UserPromptSubmit` then starts from offset 0 and re-emits earlier transcript lines, duplicating memories.",
+      "affected": "`src/iai_mcp/cli/_capture.py:539` (Codex Stop registration).",
+      "source": "#11 (codex `_capture.py:539`).",
+      "body": "**Impact:** `--target codex` registers `iai-mcp-session-capture.sh` as the Codex `Stop` hook. That script rolls over `.live.jsonl` and removes `{session_id}.offset` as if the session ended - but Codex `Stop` is turn-scoped and fires after every assistant turn. The next `UserPromptSubmit` then starts from offset 0 and re-emits earlier transcript lines, duplicating memories.\n\n**Affected:** `src/iai_mcp/cli/_capture.py:539` (Codex Stop registration).\n\n**Source (reviewers + PRs):** #11 (codex `_capture.py:539`).\n\n**PR links:** [#11](https://github.com/gardinermichael/iai-personal-memory-engine/pull/11)\n\n---\n_Triage ref: H3 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H4",
+      "title": "`turn-capture.sh` stdin parsing: IFS tab-collapse + stale-transcript precedence (data corruption)",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "claude",
+        "data-loss"
+      ],
+      "type": null,
+      "prs": [
+        6
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/6"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "Two related bugs: (1) When `transcript_path` is empty but `hook_event_name` is present, the `read` with tab `IFS` collapses consecutive tabs, so `hook_event_name` (e.g. `UserPromptSubmit`) lands in `transcript_path`; if a file by that name exists in the cwd, `_is_usable()` accepts it and the session offset advances against the wrong file. (2) A non-empty but stale/foreign stdin `transcript_path` is accepted merely because it's readable, overriding the canonical `~/.claude/projects/*/{session_id}.jsonl` - so another session's turns get written under the current `session_id` and the deferred live file is corrupted.",
+      "affected": "`src/iai_mcp/_deploy/hooks/iai-mcp-turn-capture.sh` (~L31 parsing, ~L86 usability/precedence).",
+      "source": "#6 (gemini `:31`; codex `:86` and `:31`).",
+      "body": "**Impact:** Two related bugs: (1) When `transcript_path` is empty but `hook_event_name` is present, the `read` with tab `IFS` collapses consecutive tabs, so `hook_event_name` (e.g. `UserPromptSubmit`) lands in `transcript_path`; if a file by that name exists in the cwd, `_is_usable()` accepts it and the session offset advances against the wrong file. (2) A non-empty but stale/foreign stdin `transcript_path` is accepted merely because it's readable, overriding the canonical `~/.claude/projects/*/{session_id}.jsonl` - so another session's turns get written under the current `session_id` and the deferred live file is corrupted.\n\n**Affected:** `src/iai_mcp/_deploy/hooks/iai-mcp-turn-capture.sh` (~L31 parsing, ~L86 usability/precedence).\n\n**Source (reviewers + PRs):** #6 (gemini `:31`; codex `:86` and `:31`).\n\n**PR links:** [#6](https://github.com/gardinermichael/iai-personal-memory-engine/pull/6)\n\n---\n_Triage ref: H4 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H5",
+      "title": "Codex hook status over-reports ACTIVE",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "codex"
+      ],
+      "type": null,
+      "prs": [
+        3,
+        8,
+        11
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/3",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/8",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/11"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "`capture-hooks status --target codex` returns ACTIVE/`0` based only on file + marker presence. It ignores that (a) Codex non-managed command hooks are skipped until the user trusts them via `/hooks`; (b) `[features].hooks = false` (or admin policy) disables hooks; (c) hooks defined via inline `[hooks]` in `config.toml` or a trusted project `.codex/hooks.json` exist but aren't read (reported NOT WIRED). So a fresh install looks healthy while nothing runs - and some valid setups look broken.",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L754, L762, L777, L733, L634).",
+      "source": "#3 (codex `:733`), #8 (codex `:754/:762/:777`), #11 (codex `:634`).",
+      "body": "**Impact:** `capture-hooks status --target codex` returns ACTIVE/`0` based only on file + marker presence. It ignores that (a) Codex non-managed command hooks are skipped until the user trusts them via `/hooks`; (b) `[features].hooks = false` (or admin policy) disables hooks; (c) hooks defined via inline `[hooks]` in `config.toml` or a trusted project `.codex/hooks.json` exist but aren't read (reported NOT WIRED). So a fresh install looks healthy while nothing runs - and some valid setups look broken.\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L754, L762, L777, L733, L634).\n\n**Source (reviewers + PRs):** #3 (codex `:733`), #8 (codex `:754/:762/:777`), #11 (codex `:634`).\n\n**PR links:** [#3](https://github.com/gardinermichael/iai-personal-memory-engine/pull/3) · [#8](https://github.com/gardinermichael/iai-personal-memory-engine/pull/8) · [#11](https://github.com/gardinermichael/iai-personal-memory-engine/pull/11)\n\n---\n_Triage ref: H5 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H6",
+      "title": "Defensive type checks when parsing user-editable `hooks.json` / settings",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "crash"
+      ],
+      "type": null,
+      "prs": [
+        4,
+        8
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/4",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/8"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "`_hook_entries_have_command`, `_remove_hook_commands`, `_patch_codex_hooks_config`, and `_hook_marker_wired` assume dict/list shapes. A hand-edited or corrupt `hooks.json` (non-dict entry, non-list `hooks`, scalar/list root) raises `AttributeError`/`TypeError` at runtime instead of degrading gracefully.",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L356, L379, L464, L523).",
+      "source": "#4 (gemini `:356/:379/:464`), #8 (gemini `:523`).",
+      "body": "**Impact:** `_hook_entries_have_command`, `_remove_hook_commands`, `_patch_codex_hooks_config`, and `_hook_marker_wired` assume dict/list shapes. A hand-edited or corrupt `hooks.json` (non-dict entry, non-list `hooks`, scalar/list root) raises `AttributeError`/`TypeError` at runtime instead of degrading gracefully.\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L356, L379, L464, L523).\n\n**Source (reviewers + PRs):** #4 (gemini `:356/:379/:464`), #8 (gemini `:523`).\n\n**PR links:** [#4](https://github.com/gardinermichael/iai-personal-memory-engine/pull/4) · [#8](https://github.com/gardinermichael/iai-personal-memory-engine/pull/8)\n\n---\n_Triage ref: H6 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H7",
+      "title": "Quote paths in generated Codex hook commands (spaces in home dir)",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "codex",
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        4
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/4"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "With a home directory containing whitespace, generated commands like `bash /Users/Jane Doe/.codex/hooks/...` are stored unquoted; Codex passes the string to the shell, which splits on the space, and `bash` tries to open only the first segment -> the hook silently never runs.",
+      "affected": "`src/iai_mcp/cli/_capture.py:451`.",
+      "source": "#4 (codex `:451`).",
+      "body": "**Impact:** With a home directory containing whitespace, generated commands like `bash /Users/Jane Doe/.codex/hooks/...` are stored unquoted; Codex passes the string to the shell, which splits on the space, and `bash` tries to open only the first segment -> the hook silently never runs.\n\n**Affected:** `src/iai_mcp/cli/_capture.py:451`.\n\n**Source (reviewers + PRs):** #4 (codex `:451`).\n\n**PR links:** [#4](https://github.com/gardinermichael/iai-personal-memory-engine/pull/4)\n\n---\n_Triage ref: H7 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H8",
+      "title": "Harden CLI path resolution / caching for hooks",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        9,
+        4
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/9",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/4"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "(1) `sys.argv[0]` access can raise `IndexError` in embedded/test environments. (2) Caching the PATH entry into `~/.iai-mcp/.cli-path` instead of the currently-running executable can pin the installed hooks to a stale/wrong environment when a different `iai-mcp` is earlier on PATH. (3) The Codex session-recall script's CLI resolution checks only a few fixed locations and misses pipx/pyenv/Homebrew/venv installs (the Stop hook additionally does `command -v`).",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L331, L338, L428).",
+      "source": "#9 (gemini `:338`; codex `:331`), #4 (codex `:428`).",
+      "body": "**Impact:** (1) `sys.argv[0]` access can raise `IndexError` in embedded/test environments. (2) Caching the PATH entry into `~/.iai-mcp/.cli-path` instead of the currently-running executable can pin the installed hooks to a stale/wrong environment when a different `iai-mcp` is earlier on PATH. (3) The Codex session-recall script's CLI resolution checks only a few fixed locations and misses pipx/pyenv/Homebrew/venv installs (the Stop hook additionally does `command -v`).\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L331, L338, L428).\n\n**Source (reviewers + PRs):** #9 (gemini `:338`; codex `:331`), #4 (codex `:428`).\n\n**PR links:** [#9](https://github.com/gardinermichael/iai-personal-memory-engine/pull/9) · [#4](https://github.com/gardinermichael/iai-personal-memory-engine/pull/4)\n\n---\n_Triage ref: H8 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H9",
+      "title": "`check_capture_hooks.sh`: Codex coverage, per-host log scoping, macOS robustness",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "codex",
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        7
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/7"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "(a) An empty `PROBES` array under `set -u` throws \"unbound variable\" and crashes on macOS Bash 3.2. (b) `gtimeout` isn't supported and probes can run uncapped, so a CLI that blocks on startup hangs the health check despite the advertised 5s timeout. (c) It never inspects `~/.codex/hooks.json`, so a broken Codex hook reports SKIPPED/OK. (d) Shared `capture-*`/`turn-capture-*` logs let a never-run host falsely report OK. (e) A broad `hook`/`hooks` marker flags MCP-only configs as capture-configured. (Plus a redundant `print_log_summary` call.)",
+      "affected": "`scripts/check_capture_hooks.sh` (~L49, L50, L105, L107, L160, L195, L209).",
+      "source": "#7 (gemini `:209/:50/:195`; codex `:105/:160/:49/:107`).",
+      "body": "**Impact:** (a) An empty `PROBES` array under `set -u` throws \"unbound variable\" and crashes on macOS Bash 3.2. (b) `gtimeout` isn't supported and probes can run uncapped, so a CLI that blocks on startup hangs the health check despite the advertised 5s timeout. (c) It never inspects `~/.codex/hooks.json`, so a broken Codex hook reports SKIPPED/OK. (d) Shared `capture-*`/`turn-capture-*` logs let a never-run host falsely report OK. (e) A broad `hook`/`hooks` marker flags MCP-only configs as capture-configured. (Plus a redundant `print_log_summary` call.)\n\n**Affected:** `scripts/check_capture_hooks.sh` (~L49, L50, L105, L107, L160, L195, L209).\n\n**Source (reviewers + PRs):** #7 (gemini `:209/:50/:195`; codex `:105/:160/:49/:107`).\n\n**PR links:** [#7](https://github.com/gardinermichael/iai-personal-memory-engine/pull/7)\n\n---\n_Triage ref: H9 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H10",
+      "title": "`codex_install.sh`: python3 preflight, UTF-8 I/O, TOML array-table boundary",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "codex",
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        5
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/5"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "No preflight that `python3` exists (script fails midway if absent); `read_text`/`write_text` use the locale default encoding (corruption risk on non-UTF-8 locales - pass `encoding=\"utf-8\"`); and the `[features]` boundary scan doesn't recognize `[[hooks.X]]` double-bracket array tables, so `hooks = true` can be inserted into the wrong table. (The script also invokes the unsupported `--target` flag - see H1.)",
+      "affected": "`scripts/codex_install.sh` (~L32, L59, L103, L80).",
+      "source": "#5 (gemini `:32/:59/:103`; codex `:80`).",
+      "body": "**Impact:** No preflight that `python3` exists (script fails midway if absent); `read_text`/`write_text` use the locale default encoding (corruption risk on non-UTF-8 locales - pass `encoding=\"utf-8\"`); and the `[features]` boundary scan doesn't recognize `[[hooks.X]]` double-bracket array tables, so `hooks = true` can be inserted into the wrong table. (The script also invokes the unsupported `--target` flag - see H1.)\n\n**Affected:** `scripts/codex_install.sh` (~L32, L59, L103, L80).\n\n**Source (reviewers + PRs):** #5 (gemini `:32/:59/:103`; codex `:80`).\n\n**PR links:** [#5](https://github.com/gardinermichael/iai-personal-memory-engine/pull/5)\n\n---\n_Triage ref: H10 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H11",
+      "title": "`install_hosts.sh`: resolve venv Python/`iai-mcp` instead of bare PATH; catch `OSError`",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        10
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/10"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "The script calls bare `python3` / `iai-mcp` and depends on the user's PATH - which fails right after `install.sh` before the shell is restarted; it should resolve the venv interpreter/executable first and fall back to system. Config reads catch only `json.JSONDecodeError`, not `OSError`/`PermissionError`, so an unreadable config crashes the script.",
+      "affected": "`scripts/install_hosts.sh` (~L12, L31, L55, L72, L83, L121, L125).",
+      "source": "#10 (gemini `:12/:121/:125/:31/:72/:55/:83`).",
+      "body": "**Impact:** The script calls bare `python3` / `iai-mcp` and depends on the user's PATH - which fails right after `install.sh` before the shell is restarted; it should resolve the venv interpreter/executable first and fall back to system. Config reads catch only `json.JSONDecodeError`, not `OSError`/`PermissionError`, so an unreadable config crashes the script.\n\n**Affected:** `scripts/install_hosts.sh` (~L12, L31, L55, L72, L83, L121, L125).\n\n**Source (reviewers + PRs):** #10 (gemini `:12/:121/:125/:31/:72/:55/:83`).\n\n**PR links:** [#10](https://github.com/gardinermichael/iai-personal-memory-engine/pull/10)\n\n---\n_Triage ref: H11 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H12",
+      "title": "`install_hosts.sh`: `--scope user`, `XDG_CONFIG_HOME`, stale entries, TOML `[features]` comments",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "claude",
+        "codex",
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        10
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/10"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "(a) Registers the Claude Code MCP at the default `local` scope, so the memory tools disappear in other projects - needs `--scope user`. (b) Always patches `~/.config/Claude`, ignoring `$XDG_CONFIG_HOME`. (c) Treats the mere presence of `[mcp_servers.iai-mcp]` as success and never refreshes stale `args`/env after a moved checkout, so Codex keeps launching a stale wrapper. (d) The `[features]` regex doesn't match a trailing comment (`[features] # ...`), so it appends a second `[features]` table and invalidates `config.toml`.",
+      "affected": "`scripts/install_hosts.sh` (~L23, L43, L83, L96).",
+      "source": "#10 (codex `:23/:43/:83/:96`).",
+      "body": "**Impact:** (a) Registers the Claude Code MCP at the default `local` scope, so the memory tools disappear in other projects - needs `--scope user`. (b) Always patches `~/.config/Claude`, ignoring `$XDG_CONFIG_HOME`. (c) Treats the mere presence of `[mcp_servers.iai-mcp]` as success and never refreshes stale `args`/env after a moved checkout, so Codex keeps launching a stale wrapper. (d) The `[features]` regex doesn't match a trailing comment (`[features] # ...`), so it appends a second `[features]` table and invalidates `config.toml`.\n\n**Affected:** `scripts/install_hosts.sh` (~L23, L43, L83, L96).\n\n**Source (reviewers + PRs):** #10 (codex `:23/:43/:83/:96`).\n\n**PR links:** [#10](https://github.com/gardinermichael/iai-personal-memory-engine/pull/10)\n\n---\n_Triage ref: H12 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H13",
+      "title": "Track per-target install success; skip post-install steps for failed targets",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [],
+      "type": "chore",
+      "prs": [
+        11,
+        3
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/11",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/3"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "If a target's hook install fails (missing template, non-zero exit), the command still patches Claude configs and prints restart instructions for it. Track which targets succeeded and only run post-install config / print instructions for those. Also replace the subtle `ok = _install...(target) and ok` short-circuit pattern (used to force evaluation) with something less fragile.",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L636, L625, L750).",
+      "source": "#11 (gemini `:636`), #3 (gemini `:625/:750`).",
+      "body": "**Impact:** If a target's hook install fails (missing template, non-zero exit), the command still patches Claude configs and prints restart instructions for it. Track which targets succeeded and only run post-install config / print instructions for those. Also replace the subtle `ok = _install...(target) and ok` short-circuit pattern (used to force evaluation) with something less fragile.\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L636, L625, L750).\n\n**Source (reviewers + PRs):** #11 (gemini `:636`), #3 (gemini `:625/:750`).\n\n**PR links:** [#11](https://github.com/gardinermichael/iai-personal-memory-engine/pull/11) · [#3](https://github.com/gardinermichael/iai-personal-memory-engine/pull/3)\n\n---\n_Triage ref: H13 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "H14",
+      "title": "Python 3.11 f-string-backslash crash in `install_hosts.sh` heredoc",
+      "project": "Capture Hooks (Claude + Codex)",
+      "projectKey": "1",
+      "priority": "P3",
+      "linearPriority": 4,
+      "linearPriorityLabel": "Low",
+      "labels": [
+        "py311"
+      ],
+      "type": null,
+      "prs": [
+        10
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/10"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "An embedded Python heredoc puts a backslash inside an f-string expression, which is a `SyntaxError` before Python 3.12. The project supports `>=3.11,<3.13`, so on 3.11 the Codex-setup heredoc fails to parse before doing any work.",
+      "affected": "`scripts/install_hosts.sh:87`.",
+      "source": "#10 (codex `:87`). Same Python-3.11 theme as C7 in Project 4.",
+      "body": "**Impact:** An embedded Python heredoc puts a backslash inside an f-string expression, which is a `SyntaxError` before Python 3.12. The project supports `>=3.11,<3.13`, so on 3.11 the Codex-setup heredoc fails to parse before doing any work.\n\n**Affected:** `scripts/install_hosts.sh:87`.\n\n**Source (reviewers + PRs):** #10 (codex `:87`). Same Python-3.11 theme as C7 in Project 4.\n\n**PR links:** [#10](https://github.com/gardinermichael/iai-personal-memory-engine/pull/10)\n\n---\n_Triage ref: H14 · Project 1 (Capture Hooks (Claude + Codex)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I1",
+      "title": "`import-sessions` module / arg wiring",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "crash"
+      ],
+      "type": null,
+      "prs": [
+        16,
+        30
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/16",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/30"
+      ],
+      "reviewers": [
+        "codex",
+        "gemini"
+      ],
+      "impact": "#16 wires a lazy handler that imports `iai_mcp.cli._import_sessions`, but that module doesn't exist in the tree -> `ModuleNotFoundError` the moment you run `iai-mcp import-sessions`. In #30 the module exists, but `--target/--path/--dry-run/--max-turns` are defined identically on both the parent parser and the subparsers (redundant + desync-prone), and an option placed before the subcommand is overwritten by the child's default - e.g. `import-sessions --dry-run import` parses back to `dry_run=False`.",
+      "affected": "`src/iai_mcp/cli/__init__.py` (~L402, L541, L575), `src/iai_mcp/cli/_import_sessions.py`.",
+      "source": "#16 (codex `cli/__init__.py:402`), #30 (gemini `cli/__init__.py:575`; codex `cli/__init__.py:541`).",
+      "body": "**Impact:** #16 wires a lazy handler that imports `iai_mcp.cli._import_sessions`, but that module doesn't exist in the tree -> `ModuleNotFoundError` the moment you run `iai-mcp import-sessions`. In #30 the module exists, but `--target/--path/--dry-run/--max-turns` are defined identically on both the parent parser and the subparsers (redundant + desync-prone), and an option placed before the subcommand is overwritten by the child's default - e.g. `import-sessions --dry-run import` parses back to `dry_run=False`.\n\n**Affected:** `src/iai_mcp/cli/__init__.py` (~L402, L541, L575), `src/iai_mcp/cli/_import_sessions.py`.\n\n**Source (reviewers + PRs):** #16 (codex `cli/__init__.py:402`), #30 (gemini `cli/__init__.py:575`; codex `cli/__init__.py:541`).\n\n**PR links:** [#16](https://github.com/gardinermichael/iai-personal-memory-engine/pull/16) · [#30](https://github.com/gardinermichael/iai-personal-memory-engine/pull/30)\n\n---\n_Triage ref: I1 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I2",
+      "title": "Close/flush `MemoryStore` in import paths (buffered writes lost = data loss)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "data-loss"
+      ],
+      "type": null,
+      "prs": [
+        28,
+        30
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/28",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/30"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "`MemoryStore` buffers DB writes; if `store.close()` isn't called, the last batch's buffered items never hit the database. The import reports success while silently dropping records. Wrap the store in a context manager (or `close()` in a `finally`) before reporting success.",
+      "affected": "`src/iai_mcp/cli/_capture.py` (~L280, L311), `src/iai_mcp/cli/_import_sessions.py:185`.",
+      "source": "#28 (gemini `_capture.py:311`; codex `_capture.py:280`), #30 (gemini `_import_sessions.py:185`, flagged CRITICAL).",
+      "body": "**Impact:** `MemoryStore` buffers DB writes; if `store.close()` isn't called, the last batch's buffered items never hit the database. The import reports success while silently dropping records. Wrap the store in a context manager (or `close()` in a `finally`) before reporting success.\n\n**Affected:** `src/iai_mcp/cli/_capture.py` (~L280, L311), `src/iai_mcp/cli/_import_sessions.py:185`.\n\n**Source (reviewers + PRs):** #28 (gemini `_capture.py:311`; codex `_capture.py:280`), #30 (gemini `_import_sessions.py:185`, flagged CRITICAL).\n\n**PR links:** [#28](https://github.com/gardinermichael/iai-personal-memory-engine/pull/28) · [#30](https://github.com/gardinermichael/iai-personal-memory-engine/pull/30)\n\n---\n_Triage ref: I2 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I3",
+      "title": "Import crashes on non-dict JSON / invalid UTF-8; blank/numeric/None fields mishandled",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "crash"
+      ],
+      "type": null,
+      "prs": [
+        20,
+        17,
+        19
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/20",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/17",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/19"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "A valid JSON scalar or array line (`123`, `null`, `[]`) makes the normalizers `AttributeError`-crash the whole import. Reading transcript files without `encoding=\"utf-8\"` / `errors=\"replace\"` raises `UnicodeDecodeError` on invalid bytes or non-UTF-8 systems (e.g. Windows). Blank lines get counted as `unsupported_events`; numeric ids/timestamps are ignored; `None` content is coerced to the literal string `\"None\"`; and the JSON resume-report isn't defensively typed.",
+      "affected": "`src/iai_mcp/transcript_import.py` (~L133, L139, L145, L263), `src/iai_mcp/capture.py` (~L409, L495, L656, L658).",
+      "source": "#20 (gemini `:145` CRITICAL, `:139`, `:263`, `:133`), #17 (gemini `capture.py:409` HIGH), #19 (gemini `capture.py:495/:656/:658`).",
+      "body": "**Impact:** A valid JSON scalar or array line (`123`, `null`, `[]`) makes the normalizers `AttributeError`-crash the whole import. Reading transcript files without `encoding=\"utf-8\"` / `errors=\"replace\"` raises `UnicodeDecodeError` on invalid bytes or non-UTF-8 systems (e.g. Windows). Blank lines get counted as `unsupported_events`; numeric ids/timestamps are ignored; `None` content is coerced to the literal string `\"None\"`; and the JSON resume-report isn't defensively typed.\n\n**Affected:** `src/iai_mcp/transcript_import.py` (~L133, L139, L145, L263), `src/iai_mcp/capture.py` (~L409, L495, L656, L658).\n\n**Source (reviewers + PRs):** #20 (gemini `:145` CRITICAL, `:139`, `:263`, `:133`), #17 (gemini `capture.py:409` HIGH), #19 (gemini `capture.py:495/:656/:658`).\n\n**PR links:** [#20](https://github.com/gardinermichael/iai-personal-memory-engine/pull/20) · [#17](https://github.com/gardinermichael/iai-personal-memory-engine/pull/17) · [#19](https://github.com/gardinermichael/iai-personal-memory-engine/pull/19)\n\n---\n_Triage ref: I3 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I4",
+      "title": "Historical import stamps corrupt/missing timestamps as `now()` -> DB corruption",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "data-loss"
+      ],
+      "type": null,
+      "prs": [
+        18
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/18"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "During historical re-derivation, `_resolve_ts` falls back to `datetime.now(timezone.utc)` on a parse failure, so a corrupt or missing timestamp silently becomes \"now\" and pollutes the database with wrong times. For a migration, such records should be skipped, not back-dated to the present.",
+      "affected": "`src/iai_mcp/migrate/_timestamps.py:79`.",
+      "source": "#18 (gemini `:79`, HIGH).",
+      "body": "**Impact:** During historical re-derivation, `_resolve_ts` falls back to `datetime.now(timezone.utc)` on a parse failure, so a corrupt or missing timestamp silently becomes \"now\" and pollutes the database with wrong times. For a migration, such records should be skipped, not back-dated to the present.\n\n**Affected:** `src/iai_mcp/migrate/_timestamps.py:79`.\n\n**Source (reviewers + PRs):** #18 (gemini `:79`, HIGH).\n\n**PR links:** [#18](https://github.com/gardinermichael/iai-personal-memory-engine/pull/18)\n\n---\n_Triage ref: I4 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I5",
+      "title": "`reinforce_record` on pruned/deleted records silently \"succeeds\" -> silent data loss",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "data-loss",
+        "idempotency"
+      ],
+      "type": null,
+      "prs": [
+        21
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/21"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "`store.reinforce_record` doesn't verify the record exists, so a deleted/pruned record is reported as \"reinforced\" while actually absent from the store - the turn is lost instead of re-imported. Check `store.get` before reinforcing so missing records get re-inserted.",
+      "affected": "`src/iai_mcp/capture.py` (~L533, L539).",
+      "source": "#21 (gemini `:539` HIGH; codex `:533`).",
+      "body": "**Impact:** `store.reinforce_record` doesn't verify the record exists, so a deleted/pruned record is reported as \"reinforced\" while actually absent from the store - the turn is lost instead of re-imported. Check `store.get` before reinforcing so missing records get re-inserted.\n\n**Affected:** `src/iai_mcp/capture.py` (~L533, L539).\n\n**Source (reviewers + PRs):** #21 (gemini `:539` HIGH; codex `:533`).\n\n**PR links:** [#21](https://github.com/gardinermichael/iai-personal-memory-engine/pull/21)\n\n---\n_Triage ref: I5 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I6",
+      "title": "Import drops/dupes Codex turns (parser + fixtures)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "codex"
+      ],
+      "type": null,
+      "prs": [
+        20,
+        30,
+        17
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/20",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/30",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/17"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "`import-sessions` passes Codex rollout files straight to `capture_transcript`, whose parser only accepts `user`/`assistant` or `message.role`. Real Codex assistant turns are `item.completed` with `type: agent_message` (message under `payload`) -> dropped; and Codex logs mirror the same user text as both a `response_item` and an `event_msg` at different timestamps -> duplicates. The Codex test fixtures use a simplified `role/content` shape, giving false coverage that hides all of this.",
+      "affected": "`src/iai_mcp/transcript_import.py` (~L195, L197), `src/iai_mcp/cli/_import_sessions.py:169`, `tests/test_import_sessions.py:97`.",
+      "source": "#20 (codex `:197`, `:195`), #30 (codex `_import_sessions.py:169`), #17 (codex `test_import_sessions.py:97`). Shares the Codex-format root cause with H2 in Project 1.",
+      "body": "**Impact:** `import-sessions` passes Codex rollout files straight to `capture_transcript`, whose parser only accepts `user`/`assistant` or `message.role`. Real Codex assistant turns are `item.completed` with `type: agent_message` (message under `payload`) -> dropped; and Codex logs mirror the same user text as both a `response_item` and an `event_msg` at different timestamps -> duplicates. The Codex test fixtures use a simplified `role/content` shape, giving false coverage that hides all of this.\n\n**Affected:** `src/iai_mcp/transcript_import.py` (~L195, L197), `src/iai_mcp/cli/_import_sessions.py:169`, `tests/test_import_sessions.py:97`.\n\n**Source (reviewers + PRs):** #20 (codex `:197`, `:195`), #30 (codex `_import_sessions.py:169`), #17 (codex `test_import_sessions.py:97`). Shares the Codex-format root cause with H2 in Project 1.\n\n**PR links:** [#20](https://github.com/gardinermichael/iai-personal-memory-engine/pull/20) · [#30](https://github.com/gardinermichael/iai-personal-memory-engine/pull/30) · [#17](https://github.com/gardinermichael/iai-personal-memory-engine/pull/17)\n\n---\n_Triage ref: I6 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I7",
+      "title": "`import-sessions` rewrites Claude `session_id` -> breaks idempotency vs hook capture",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "idempotency",
+        "codex"
+      ],
+      "type": null,
+      "prs": [
+        30
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/30"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The importer rewrites a Claude transcript's `session_id` to `claude:<stem>`, while the installed hook-capture path uses the raw Claude `session_id` UUID. Because capture idempotency hashes include `session_id`, running `import-sessions import` over `~/.claude/projects` inserts duplicates instead of reinforcing turns already captured by hooks.",
+      "affected": "`src/iai_mcp/cli/_import_sessions.py:107`.",
+      "source": "#30 (codex `:107`).",
+      "body": "**Impact:** The importer rewrites a Claude transcript's `session_id` to `claude:<stem>`, while the installed hook-capture path uses the raw Claude `session_id` UUID. Because capture idempotency hashes include `session_id`, running `import-sessions import` over `~/.claude/projects` inserts duplicates instead of reinforcing turns already captured by hooks.\n\n**Affected:** `src/iai_mcp/cli/_import_sessions.py:107`.\n\n**Source (reviewers + PRs):** #30 (codex `:107`).\n\n**PR links:** [#30](https://github.com/gardinermichael/iai-personal-memory-engine/pull/30)\n\n---\n_Triage ref: I7 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I8",
+      "title": "Import-provenance idempotency bugs (legacy key, role collision, ts coercion)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "idempotency"
+      ],
+      "type": null,
+      "prs": [
+        21
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/21"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "Three idempotency defects: (1) previously imported uuid-less rows used a legacy tag, but the new `jsonl-fallback:...` value computes a different key, so the first post-upgrade re-import duplicates instead of reinforcing; (2) a JSON `uuid` reused on both the user and assistant entries collides in the import-state key, silently dropping one side - include `role` in the key; (3) numeric/epoch timestamps raise `TypeError` when joined into the fallback key string, aborting the import.",
+      "affected": "`src/iai_mcp/capture.py` (~L269, L271, L552).",
+      "source": "#21 (codex `:552`, `:269`, `:271`).",
+      "body": "**Impact:** Three idempotency defects: (1) previously imported uuid-less rows used a legacy tag, but the new `jsonl-fallback:...` value computes a different key, so the first post-upgrade re-import duplicates instead of reinforcing; (2) a JSON `uuid` reused on both the user and assistant entries collides in the import-state key, silently dropping one side - include `role` in the key; (3) numeric/epoch timestamps raise `TypeError` when joined into the fallback key string, aborting the import.\n\n**Affected:** `src/iai_mcp/capture.py` (~L269, L271, L552).\n\n**Source (reviewers + PRs):** #21 (codex `:552`, `:269`, `:271`).\n\n**PR links:** [#21](https://github.com/gardinermichael/iai-personal-memory-engine/pull/21)\n\n---\n_Triage ref: I8 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I9",
+      "title": "Import fails when the daemon holds the exclusive store lock",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "daemon-lock"
+      ],
+      "type": null,
+      "prs": [
+        28
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/28"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "When the installed daemon is running it opens the Hippo store in exclusive mode, so the importer's direct `MemoryStore()` open raises `HippoLockHeldError` before any transcript is imported. Either route imports through the daemon, open non-exclusively, or fail with clear \"stop the daemon first\" guidance.",
+      "affected": "`src/iai_mcp/cli/_capture.py:280`.",
+      "source": "#28 (codex `:280`).",
+      "body": "**Impact:** When the installed daemon is running it opens the Hippo store in exclusive mode, so the importer's direct `MemoryStore()` open raises `HippoLockHeldError` before any transcript is imported. Either route imports through the daemon, open non-exclusively, or fail with clear \"stop the daemon first\" guidance.\n\n**Affected:** `src/iai_mcp/cli/_capture.py:280`.\n\n**Source (reviewers + PRs):** #28 (codex `:280`).\n\n**PR links:** [#28](https://github.com/gardinermichael/iai-personal-memory-engine/pull/28)\n\n---\n_Triage ref: I9 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I10",
+      "title": "Historical import perf: cache `transcript_root.glob()` per `session_id`",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [],
+      "type": "perf",
+      "prs": [
+        18
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/18"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "The same expensive `transcript_root.glob()` is run repeatedly for the same `session_id`, causing severe disk thrashing on large migrations. Add a local `_glob_cache` keyed by `session_id`.",
+      "affected": "`src/iai_mcp/migrate/_timestamps.py:195`.",
+      "source": "#18 (gemini `:195`, HIGH).",
+      "body": "**Impact:** The same expensive `transcript_root.glob()` is run repeatedly for the same `session_id`, causing severe disk thrashing on large migrations. Add a local `_glob_cache` keyed by `session_id`.\n\n**Affected:** `src/iai_mcp/migrate/_timestamps.py:195`.\n\n**Source (reviewers + PRs):** #18 (gemini `:195`, HIGH).\n\n**PR links:** [#18](https://github.com/gardinermichael/iai-personal-memory-engine/pull/18)\n\n---\n_Triage ref: I10 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I11",
+      "title": "Historical import filtering bugs (`--since/--before/--exclude`, UUID fallback)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [],
+      "type": null,
+      "prs": [
+        18
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/18"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "(a) When `--since/--before` filters out part of a 3+-record collapsed group, the remainder drops below the detection threshold and is never rediscovered in later wider imports. (b) `--exclude 'secret-project/*.jsonl'` only tests absolute paths and basenames, so project-relative globs don't match and excluded transcripts stay eligible. (c) When a `source_uuid` match is filtered out by the date window, the function continues to the content-hash fallback instead of returning no-match.",
+      "affected": "`src/iai_mcp/migrate/_timestamps.py` (~L79, L124, L301).",
+      "source": "#18 (codex `:301`, `:124`, `:79`).",
+      "body": "**Impact:** (a) When `--since/--before` filters out part of a 3+-record collapsed group, the remainder drops below the detection threshold and is never rediscovered in later wider imports. (b) `--exclude 'secret-project/*.jsonl'` only tests absolute paths and basenames, so project-relative globs don't match and excluded transcripts stay eligible. (c) When a `source_uuid` match is filtered out by the date window, the function continues to the content-hash fallback instead of returning no-match.\n\n**Affected:** `src/iai_mcp/migrate/_timestamps.py` (~L79, L124, L301).\n\n**Source (reviewers + PRs):** #18 (codex `:301`, `:124`, `:79`).\n\n**PR links:** [#18](https://github.com/gardinermichael/iai-personal-memory-engine/pull/18)\n\n---\n_Triage ref: I11 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I12",
+      "title": "`capture-transcript --dry-run` still opens `MemoryStore` (defeats dry-run)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "daemon-lock"
+      ],
+      "type": null,
+      "prs": [
+        17
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/17"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "`--dry-run` is only checked after `MemoryStore()` is constructed, which creates/opens the store and lock files - defeating the dry-run safety guarantee on read-only or already-locked stores. Check the flag before opening the store.",
+      "affected": "`src/iai_mcp/cli/_capture.py:253`.",
+      "source": "#17 (codex `:253`).",
+      "body": "**Impact:** `--dry-run` is only checked after `MemoryStore()` is constructed, which creates/opens the store and lock files - defeating the dry-run safety guarantee on read-only or already-locked stores. Check the flag before opening the store.\n\n**Affected:** `src/iai_mcp/cli/_capture.py:253`.\n\n**Source (reviewers + PRs):** #17 (codex `:253`).\n\n**PR links:** [#17](https://github.com/gardinermichael/iai-personal-memory-engine/pull/17)\n\n---\n_Triage ref: I12 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I13",
+      "title": "Surface `--max-turns` cap warnings on all paths (incl. `--no-spawn`)",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [],
+      "type": null,
+      "prs": [
+        17,
+        28
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/17",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/28"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The `--max-turns` cap warning only runs on the inline path; the Stop hook's `--no-spawn` path silently truncates without warning. Combined with the default cap of 200, any transcript with >200 records is quietly clipped. Propagate the warning through `--no-spawn` and raise/document the cap for full backfills.",
+      "affected": "`src/iai_mcp/cli/_capture.py:258` (and the cap default).",
+      "source": "#17 (codex `:258`), #28 (the \"raise cap + surface warnings\" PR).",
+      "body": "**Impact:** The `--max-turns` cap warning only runs on the inline path; the Stop hook's `--no-spawn` path silently truncates without warning. Combined with the default cap of 200, any transcript with >200 records is quietly clipped. Propagate the warning through `--no-spawn` and raise/document the cap for full backfills.\n\n**Affected:** `src/iai_mcp/cli/_capture.py:258` (and the cap default).\n\n**Source (reviewers + PRs):** #17 (codex `:258`), #28 (the \"raise cap + surface warnings\" PR).\n\n**PR links:** [#17](https://github.com/gardinermichael/iai-personal-memory-engine/pull/17) · [#28](https://github.com/gardinermichael/iai-personal-memory-engine/pull/28)\n\n---\n_Triage ref: I13 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I14",
+      "title": "`--no-spawn` deferred captures ignore `IAI_MCP_STORE` and overwrite same-second files",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "store-path",
+        "data-loss"
+      ],
+      "type": null,
+      "prs": [
+        27,
+        28
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/27",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/28"
+      ],
+      "reviewers": [],
+      "impact": "With a non-default store, the `--no-spawn` path writes to `~/.iai-mcp/.deferred-captures` via `Path.home()` rather than `IAI_MCP_STORE`, so custom-store backfills never reach the configured store. Worse, `write_deferred_captures` names deferred files with second-precision timestamps, so multiple imports within the same second overwrite each other's queued files.",
+      "affected": "`write_deferred_captures` / `cmd_capture_transcript` in `src/iai_mcp/cli/_capture.py`.",
+      "source": "#27 (custom-store + same-second overwrite), #28. Related to C1 in Project 4 (IAI_MCP_STORE not honored).",
+      "body": "**Impact:** With a non-default store, the `--no-spawn` path writes to `~/.iai-mcp/.deferred-captures` via `Path.home()` rather than `IAI_MCP_STORE`, so custom-store backfills never reach the configured store. Worse, `write_deferred_captures` names deferred files with second-precision timestamps, so multiple imports within the same second overwrite each other's queued files.\n\n**Affected:** `write_deferred_captures` / `cmd_capture_transcript` in `src/iai_mcp/cli/_capture.py`.\n\n**Source (reviewers + PRs):** #27 (custom-store + same-second overwrite), #28. Related to C1 in Project 4 (IAI_MCP_STORE not honored).\n\n**PR links:** [#27](https://github.com/gardinermichael/iai-personal-memory-engine/pull/27) · [#28](https://github.com/gardinermichael/iai-personal-memory-engine/pull/28)\n\n---\n_Triage ref: I14 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I15",
+      "title": "`import-sessions` relative `--path` raises `ValueError`",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "crash"
+      ],
+      "type": null,
+      "prs": [
+        30
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/30"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "A relative `--path` makes `expanded.relative_to(root.expanduser())` raise `ValueError`, because `expanded` is relative while `root` is absolute. Normalize/resolve the path before computing the relative form.",
+      "affected": "`src/iai_mcp/cli/_import_sessions.py:55`.",
+      "source": "#30 (gemini `:55`, MEDIUM).",
+      "body": "**Impact:** A relative `--path` makes `expanded.relative_to(root.expanduser())` raise `ValueError`, because `expanded` is relative while `root` is absolute. Normalize/resolve the path before computing the relative form.\n\n**Affected:** `src/iai_mcp/cli/_import_sessions.py:55`.\n\n**Source (reviewers + PRs):** #30 (gemini `:55`, MEDIUM).\n\n**PR links:** [#30](https://github.com/gardinermichael/iai-personal-memory-engine/pull/30)\n\n---\n_Triage ref: I15 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "I16",
+      "title": "`import-sessions`: add `-y` short alias for `--yes`",
+      "project": "Transcript / Session Import",
+      "projectKey": "2",
+      "priority": "P3",
+      "linearPriority": 4,
+      "linearPriorityLabel": "Low",
+      "labels": [
+        "help-text"
+      ],
+      "type": null,
+      "prs": [
+        16
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/16"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "`--yes` has no `-y` short alias, inconsistent with other commands in this CLI (e.g. `daemon install`). Minor consistency/ergonomics fix.",
+      "affected": "`src/iai_mcp/cli/__init__.py:399`.",
+      "source": "#16 (gemini `:399`).",
+      "body": "**Impact:** `--yes` has no `-y` short alias, inconsistent with other commands in this CLI (e.g. `daemon install`). Minor consistency/ergonomics fix.\n\n**Affected:** `src/iai_mcp/cli/__init__.py:399`.\n\n**Source (reviewers + PRs):** #16 (gemini `:399`).\n\n**PR links:** [#16](https://github.com/gardinermichael/iai-personal-memory-engine/pull/16)\n\n---\n_Triage ref: I16 · Project 2 (Transcript / Session Import) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K1",
+      "title": "Homebrew formula resource handling (pip vs npm/cargo, `resources.grep`, vendored crates)",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        15
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/15"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "`virtualenv_install_with_resources` automatically runs `pip install` on all declared resource blocks, so the npm/cargo resources get fed to pip and the build fails. Separately, `resources.grep(/.../)` doesn't match `Resource` object names, so the offline-npm selection path is broken; and Rust crate dependencies aren't vendored as Cargo resources, so offline builds fail when the Python build invokes Cargo.",
+      "affected": "`packaging/homebrew/iai-mcp.rb` (~L66, L83, L88).",
+      "source": "#15 (gemini `:88` HIGH; codex `:66`, `:83`).",
+      "body": "**Impact:** `virtualenv_install_with_resources` automatically runs `pip install` on all declared resource blocks, so the npm/cargo resources get fed to pip and the build fails. Separately, `resources.grep(/.../)` doesn't match `Resource` object names, so the offline-npm selection path is broken; and Rust crate dependencies aren't vendored as Cargo resources, so offline builds fail when the Python build invokes Cargo.\n\n**Affected:** `packaging/homebrew/iai-mcp.rb` (~L66, L83, L88).\n\n**Source (reviewers + PRs):** #15 (gemini `:88` HIGH; codex `:66`, `:83`).\n\n**PR links:** [#15](https://github.com/gardinermichael/iai-personal-memory-engine/pull/15)\n\n---\n_Triage ref: K1 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K2",
+      "title": "Homebrew wrapper path mismatch -> MCP wrapper won't start",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        15
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/15"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The Python resolver looks for `iai_mcp/_wrapper/index.js`, but the formula installs the Node wrapper + deps under `libexec/mcp-wrapper`. After a successful `brew install`, launching the MCP wrapper fails with a missing-module error. Point the runtime resolver at the installed wrapper tree (or install to the path the resolver expects).",
+      "affected": "`packaging/homebrew/iai-mcp.rb:77` + the Python wrapper resolver.",
+      "source": "#15 (codex `:77`, P1). Same root as K4 - wrapper packaging/runtime path mismatch.",
+      "body": "**Impact:** The Python resolver looks for `iai_mcp/_wrapper/index.js`, but the formula installs the Node wrapper + deps under `libexec/mcp-wrapper`. After a successful `brew install`, launching the MCP wrapper fails with a missing-module error. Point the runtime resolver at the installed wrapper tree (or install to the path the resolver expects).\n\n**Affected:** `packaging/homebrew/iai-mcp.rb:77` + the Python wrapper resolver.\n\n**Source (reviewers + PRs):** #15 (codex `:77`, P1). Same root as K4 - wrapper packaging/runtime path mismatch.\n\n**PR links:** [#15](https://github.com/gardinermichael/iai-personal-memory-engine/pull/15)\n\n---\n_Triage ref: K2 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K3",
+      "title": "Homebrew: don't relink console scripts; drop the redundant npm rebuild",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        15
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/15"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "`virtualenv_install_with_resources` already links the console scripts, so the formula's manual relink loop tries to create duplicate symlinks and aborts with an existing-file error. Also, the formula builds the wrapper explicitly and then `setup.py` runs `npm ci` + `npm run build` again during the Python install - a second npm build in an offline/no-network context.",
+      "affected": "`packaging/homebrew/iai-mcp.rb` (~L83, L86).",
+      "source": "#15 (codex `:86` P1, `:83`).",
+      "body": "**Impact:** `virtualenv_install_with_resources` already links the console scripts, so the formula's manual relink loop tries to create duplicate symlinks and aborts with an existing-file error. Also, the formula builds the wrapper explicitly and then `setup.py` runs `npm ci` + `npm run build` again during the Python install - a second npm build in an offline/no-network context.\n\n**Affected:** `packaging/homebrew/iai-mcp.rb` (~L83, L86).\n\n**Source (reviewers + PRs):** #15 (codex `:86` P1, `:83`).\n\n**PR links:** [#15](https://github.com/gardinermichael/iai-personal-memory-engine/pull/15)\n\n---\n_Triage ref: K3 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K4",
+      "title": "Prebuilt wrapper ships without bundled Node deps (`ERR_MODULE_NOT_FOUND`)",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        13
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/13"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The prebuilt `tsc` output imports `@modelcontextprotocol/sdk` from `node_modules`, but `MANIFEST.in` prunes `node_modules`, so source releases ship JS that fails at runtime with `ERR_MODULE_NOT_FOUND`. Bundle the Node runtime dependencies with the prebuilt wrapper (or vendor/inline them).",
+      "affected": "`MANIFEST.in:17`, `setup.py` (wrapper packaging).",
+      "source": "#13 (codex `MANIFEST.in:17`).",
+      "body": "**Impact:** The prebuilt `tsc` output imports `@modelcontextprotocol/sdk` from `node_modules`, but `MANIFEST.in` prunes `node_modules`, so source releases ship JS that fails at runtime with `ERR_MODULE_NOT_FOUND`. Bundle the Node runtime dependencies with the prebuilt wrapper (or vendor/inline them).\n\n**Affected:** `MANIFEST.in:17`, `setup.py` (wrapper packaging).\n\n**Source (reviewers + PRs):** #13 (codex `MANIFEST.in:17`).\n\n**PR links:** [#13](https://github.com/gardinermichael/iai-personal-memory-engine/pull/13)\n\n---\n_Triage ref: K4 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K5",
+      "title": "Homebrew: declare Node as a runtime dependency (not `:build`)",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        15
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/15"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "Node is declared as `=> :build` only, but the installed CLI needs Node at runtime to launch the packaged MCP wrapper, so clean installs fail to run the wrapper.",
+      "affected": "`packaging/homebrew/iai-mcp.rb:26`.",
+      "source": "#15 (codex `:26`, P2).",
+      "body": "**Impact:** Node is declared as `=> :build` only, but the installed CLI needs Node at runtime to launch the packaged MCP wrapper, so clean installs fail to run the wrapper.\n\n**Affected:** `packaging/homebrew/iai-mcp.rb:26`.\n\n**Source (reviewers + PRs):** #15 (codex `:26`, P2).\n\n**PR links:** [#15](https://github.com/gardinermichael/iai-personal-memory-engine/pull/15)\n\n---\n_Triage ref: K5 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K6",
+      "title": "Homebrew: `brew test` asserts unsupported `--version` flags",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "homebrew"
+      ],
+      "type": null,
+      "prs": [
+        15
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/15"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The formula's test phase runs `--version` on `iai-mcp` and `iai-mcp-core`, neither of which supports that flag, so `brew test` fails after an otherwise successful install.",
+      "affected": "`packaging/homebrew/iai-mcp.rb:109`.",
+      "source": "#15 (codex `:109`, P2).",
+      "body": "**Impact:** The formula's test phase runs `--version` on `iai-mcp` and `iai-mcp-core`, neither of which supports that flag, so `brew test` fails after an otherwise successful install.\n\n**Affected:** `packaging/homebrew/iai-mcp.rb:109`.\n\n**Source (reviewers + PRs):** #15 (codex `:109`, P2).\n\n**PR links:** [#15](https://github.com/gardinermichael/iai-personal-memory-engine/pull/15)\n\n---\n_Triage ref: K6 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K7",
+      "title": "Wrapper build cache invalidation: stale `dist/` accepted when `src/*.ts` changes",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [],
+      "type": "build",
+      "prs": [
+        13
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/13"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "When `mcp-wrapper/dist/` already exists from a prior build, changes to `mcp-wrapper/src/*.ts` may not trigger a rebuild, so non-editable wheel builds ship stale JS.",
+      "affected": "`setup.py:162`.",
+      "source": "#13 (codex `:162`).",
+      "body": "**Impact:** When `mcp-wrapper/dist/` already exists from a prior build, changes to `mcp-wrapper/src/*.ts` may not trigger a rebuild, so non-editable wheel builds ship stale JS.\n\n**Affected:** `setup.py:162`.\n\n**Source (reviewers + PRs):** #13 (codex `:162`).\n\n**PR links:** [#13](https://github.com/gardinermichael/iai-personal-memory-engine/pull/13)\n\n---\n_Triage ref: K7 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K8",
+      "title": "`install.sh`: treat `\"true\"` as truthy for the package-manager env guards",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "shell-script"
+      ],
+      "type": null,
+      "prs": [
+        14
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/14"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "The guards for `HOMEBREW_POSTINSTALL` and `IAI_PACKAGE_MANAGER_INSTALL` only match the literal `\"1\"`, so setting them to `\"true\"` silently falls through to the mutating bootstrap path. (This script's post-install guidance also advertises the unsupported `capture-hooks ... --target` examples - see H1.)",
+      "affected": "`scripts/install.sh:98` (and `:90` for the `--target` examples).",
+      "source": "#14 (gemini `:98`; codex `:90`).",
+      "body": "**Impact:** The guards for `HOMEBREW_POSTINSTALL` and `IAI_PACKAGE_MANAGER_INSTALL` only match the literal `\"1\"`, so setting them to `\"true\"` silently falls through to the mutating bootstrap path. (This script's post-install guidance also advertises the unsupported `capture-hooks ... --target` examples - see H1.)\n\n**Affected:** `scripts/install.sh:98` (and `:90` for the `--target` examples).\n\n**Source (reviewers + PRs):** #14 (gemini `:98`; codex `:90`).\n\n**PR links:** [#14](https://github.com/gardinermichael/iai-personal-memory-engine/pull/14)\n\n---\n_Triage ref: K8 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "K9",
+      "title": "`setup.py` `_run_npm_wrapper_build` should return the validated JS list",
+      "project": "Packaging & Installation (Homebrew)",
+      "projectKey": "3",
+      "priority": "P3",
+      "linearPriority": 4,
+      "linearPriorityLabel": "Low",
+      "labels": [],
+      "type": "refactor",
+      "prs": [
+        13
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/13"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "`_run_npm_wrapper_build` returns `None`, forcing a redundant filesystem re-validation in the fallback path. Have it return the list of validated JS files directly.",
+      "affected": "`setup.py:85`.",
+      "source": "#13 (gemini `:85`).",
+      "body": "**Impact:** `_run_npm_wrapper_build` returns `None`, forcing a redundant filesystem re-validation in the fallback path. Have it return the list of validated JS files directly.\n\n**Affected:** `setup.py:85`.\n\n**Source (reviewers + PRs):** #13 (gemini `:85`).\n\n**PR links:** [#13](https://github.com/gardinermichael/iai-personal-memory-engine/pull/13)\n\n---\n_Triage ref: K9 · Project 3 (Packaging & Installation (Homebrew)) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C1",
+      "title": "Honor `IAI_MCP_STORE` for `--store-path` (help claims it; code ignores the env var)",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P1",
+      "linearPriority": 1,
+      "linearPriorityLabel": "Urgent",
+      "labels": [
+        "store-path"
+      ],
+      "type": null,
+      "prs": [
+        32,
+        27,
+        28
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/32",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/27",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/28"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "The help text states `--store-path` defaults to `IAI_MCP_STORE` when set, but the argument defaults to `None` and the implementations fall back directly to `~/.iai-mcp` without consulting the env var. So operators who set `IAI_MCP_STORE` and omit `--store-path` silently operate on the wrong store. Affects the maintenance commands, `schema-cleanup` (`cmd_schema_cleanup`), and `sleep-cycle` (`cmd_maintenance_sleep_cycle`). Either honor the env var or fix the help.",
+      "affected": "`src/iai_mcp/cli/__init__.py` (~L804, L806, L853, L887, L926, L959), `src/iai_mcp/cli/_maintenance.py` (~L19-22).",
+      "source": "#32 (gemini `:806/:853/:887/:926/:959` HIGH; codex `:804`); reinforced by #27 and #28. Related to I14 in Project 2.",
+      "body": "**Impact:** The help text states `--store-path` defaults to `IAI_MCP_STORE` when set, but the argument defaults to `None` and the implementations fall back directly to `~/.iai-mcp` without consulting the env var. So operators who set `IAI_MCP_STORE` and omit `--store-path` silently operate on the wrong store. Affects the maintenance commands, `schema-cleanup` (`cmd_schema_cleanup`), and `sleep-cycle` (`cmd_maintenance_sleep_cycle`). Either honor the env var or fix the help.\n\n**Affected:** `src/iai_mcp/cli/__init__.py` (~L804, L806, L853, L887, L926, L959), `src/iai_mcp/cli/_maintenance.py` (~L19-22).\n\n**Source (reviewers + PRs):** #32 (gemini `:806/:853/:887/:926/:959` HIGH; codex `:804`); reinforced by #27 and #28. Related to I14 in Project 2.\n\n**PR links:** [#32](https://github.com/gardinermichael/iai-personal-memory-engine/pull/32) · [#27](https://github.com/gardinermichael/iai-personal-memory-engine/pull/27) · [#28](https://github.com/gardinermichael/iai-personal-memory-engine/pull/28)\n\n---\n_Triage ref: C1 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C2",
+      "title": "Correct the \"read-only\" labels - several commands mutate the store",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "help-text"
+      ],
+      "type": null,
+      "prs": [
+        29,
+        31
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/29",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/31"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "Commands advertised/grouped as `[read-only]` actually write to the store: `recall` reinforces every hit (edges + `labile_until`); `audit drift` writes an `s5_drift_alert` event when the threshold is met; `session-start` writes a `session_started` event; `session refresh`/`session-refresh-if-stale` drains pending captures into the store; and the `lifecycle` group is labeled read-only but includes `force-unlock`, which removes the lockfile. Mislabeling these misleads operators about side effects.",
+      "affected": "`src/iai_mcp/cli/__init__.py` (~L571, L581, L618, L988), `src/iai_mcp/iai_cli.py` (~L482, L507).",
+      "source": "#29 (codex `:571/:581/:618/:988`, `iai_cli.py:507`), #31 (codex `iai_cli.py:482`).",
+      "body": "**Impact:** Commands advertised/grouped as `[read-only]` actually write to the store: `recall` reinforces every hit (edges + `labile_until`); `audit drift` writes an `s5_drift_alert` event when the threshold is met; `session-start` writes a `session_started` event; `session refresh`/`session-refresh-if-stale` drains pending captures into the store; and the `lifecycle` group is labeled read-only but includes `force-unlock`, which removes the lockfile. Mislabeling these misleads operators about side effects.\n\n**Affected:** `src/iai_mcp/cli/__init__.py` (~L571, L581, L618, L988), `src/iai_mcp/iai_cli.py` (~L482, L507).\n\n**Source (reviewers + PRs):** #29 (codex `:571/:581/:618/:988`, `iai_cli.py:507`), #31 (codex `iai_cli.py:482`).\n\n**PR links:** [#29](https://github.com/gardinermichael/iai-personal-memory-engine/pull/29) · [#31](https://github.com/gardinermichael/iai-personal-memory-engine/pull/31)\n\n---\n_Triage ref: C2 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C3",
+      "title": "`iai capture --tags` is a silent no-op",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "help-text"
+      ],
+      "type": null,
+      "prs": [
+        23
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/23"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "`--tags` is added to the `capture` parser and shown in the top-level examples, but `cmd_capture` never reads it - it's not passed to the daemon's `memory_capture` JSON-RPC request or to `write_turn_direct`. So `iai capture ... --tags preference` is accepted and silently ignored. Wire it through (or remove it).",
+      "affected": "`src/iai_mcp/iai_cli.py` (~L556, L557; `cmd_capture` ~L271-333).",
+      "source": "#23 (gemini `:557`; codex `:556`).",
+      "body": "**Impact:** `--tags` is added to the `capture` parser and shown in the top-level examples, but `cmd_capture` never reads it - it's not passed to the daemon's `memory_capture` JSON-RPC request or to `write_turn_direct`. So `iai capture ... --tags preference` is accepted and silently ignored. Wire it through (or remove it).\n\n**Affected:** `src/iai_mcp/iai_cli.py` (~L556, L557; `cmd_capture` ~L271-333).\n\n**Source (reviewers + PRs):** #23 (gemini `:557`; codex `:556`).\n\n**PR links:** [#23](https://github.com/gardinermichael/iai-personal-memory-engine/pull/23)\n\n---\n_Triage ref: C3 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C4",
+      "title": "`audit drift --severity` documented but never applied",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "help-text"
+      ],
+      "type": null,
+      "prs": [
+        32
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/32"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The new help says `--severity` filters `audit drift` output, but the `cmd_audit` drift branch returns before `severity` is ever read or applied - the filter does nothing.",
+      "affected": "`src/iai_mcp/cli/__init__.py:658`.",
+      "source": "#32 (codex `:658`).",
+      "body": "**Impact:** The new help says `--severity` filters `audit drift` output, but the `cmd_audit` drift branch returns before `severity` is ever read or applied - the filter does nothing.\n\n**Affected:** `src/iai_mcp/cli/__init__.py:658`.\n\n**Source (reviewers + PRs):** #32 (codex `:658`).\n\n**PR links:** [#32](https://github.com/gardinermichael/iai-personal-memory-engine/pull/32)\n\n---\n_Triage ref: C4 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C5",
+      "title": "`commands.md`: maintenance/crypto examples must stop the daemon first",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "docs",
+        "daemon-lock"
+      ],
+      "type": null,
+      "prs": [
+        26
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/26"
+      ],
+      "reviewers": [
+        "codex"
+      ],
+      "impact": "The single copy-pasteable maintenance block restarts the daemon before the `symmetrize-self-loops --apply --yes` example, but that command's daemon-alive preflight refuses to run while a daemon PID is alive. Likewise the `rotate` / `recover-prior-key` / `redact-undecryptable` crypto examples open `MemoryStore` in exclusive mode and fail on the live Hippo lock. The docs should instruct stopping the daemon before these steps.",
+      "affected": "`docs/commands.md` (~L171, L254).",
+      "source": "#26 (codex `:254`, `:171`).",
+      "body": "**Impact:** The single copy-pasteable maintenance block restarts the daemon before the `symmetrize-self-loops --apply --yes` example, but that command's daemon-alive preflight refuses to run while a daemon PID is alive. Likewise the `rotate` / `recover-prior-key` / `redact-undecryptable` crypto examples open `MemoryStore` in exclusive mode and fail on the live Hippo lock. The docs should instruct stopping the daemon before these steps.\n\n**Affected:** `docs/commands.md` (~L171, L254).\n\n**Source (reviewers + PRs):** #26 (codex `:254`, `:171`).\n\n**PR links:** [#26](https://github.com/gardinermichael/iai-personal-memory-engine/pull/26)\n\n---\n_Triage ref: C5 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C6",
+      "title": "`README` import docs: `xargs --session-id`, `--max-turns`, drain-before-verify",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "docs"
+      ],
+      "type": null,
+      "prs": [
+        27
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/27"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "Three doc bugs in the import recipes: (1) the `xargs` examples omit `--session-id`, so every imported transcript defaults to session `\"-\"`, collapsing all history under one session and breaking session filtering; (2) the documented backfill only queues the first 200 records because `capture-transcript` defaults `--max-turns` to 200 - needs a `--max-turns` note for >200-record transcripts; (3) `--no-spawn` only writes `.deferred-captures` files, so running `iai last` immediately after a backfill reports nothing until the deferred captures are drained.",
+      "affected": "`README.md` (~L228, L235, L243, L263).",
+      "source": "#27 (gemini `:228/:235/:243`; codex `:228`, `:263`). Code-side counterparts are I13/I14 in Project 2.",
+      "body": "**Impact:** Three doc bugs in the import recipes: (1) the `xargs` examples omit `--session-id`, so every imported transcript defaults to session `\"-\"`, collapsing all history under one session and breaking session filtering; (2) the documented backfill only queues the first 200 records because `capture-transcript` defaults `--max-turns` to 200 - needs a `--max-turns` note for >200-record transcripts; (3) `--no-spawn` only writes `.deferred-captures` files, so running `iai last` immediately after a backfill reports nothing until the deferred captures are drained.\n\n**Affected:** `README.md` (~L228, L235, L243, L263).\n\n**Source (reviewers + PRs):** #27 (gemini `:228/:235/:243`; codex `:228`, `:263`). Code-side counterparts are I13/I14 in Project 2.\n\n**PR links:** [#27](https://github.com/gardinermichael/iai-personal-memory-engine/pull/27)\n\n---\n_Triage ref: C6 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C7",
+      "title": "`add_subparsers(parser_class=...)` misuse (function where a class is expected; 3.11+)",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P2",
+      "linearPriority": 3,
+      "linearPriorityLabel": "Medium",
+      "labels": [
+        "py311"
+      ],
+      "type": null,
+      "prs": [
+        29
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/29"
+      ],
+      "reviewers": [
+        "gemini"
+      ],
+      "impact": "`parser_class` in `add_subparsers` is a Python 3.11+ feature and expects a class, but `_raw_help_parser` is a function. On Python 3.10 it raises `TypeError: add_subparsers() got an unexpected keyword argument 'parser_class'`, and passing a function trips static type checkers. The project targets `>=3.11`, so the runtime risk is bounded, but the function-vs-class misuse should be fixed.",
+      "affected": "`src/iai_mcp/cli/__init__.py:337`, `src/iai_mcp/iai_cli.py:473`.",
+      "source": "#29 (gemini, HIGH). Same Python-version theme as H14 in Project 1.",
+      "body": "**Impact:** `parser_class` in `add_subparsers` is a Python 3.11+ feature and expects a class, but `_raw_help_parser` is a function. On Python 3.10 it raises `TypeError: add_subparsers() got an unexpected keyword argument 'parser_class'`, and passing a function trips static type checkers. The project targets `>=3.11`, so the runtime risk is bounded, but the function-vs-class misuse should be fixed.\n\n**Affected:** `src/iai_mcp/cli/__init__.py:337`, `src/iai_mcp/iai_cli.py:473`.\n\n**Source (reviewers + PRs):** #29 (gemini, HIGH). Same Python-version theme as H14 in Project 1.\n\n**PR links:** [#29](https://github.com/gardinermichael/iai-personal-memory-engine/pull/29)\n\n---\n_Triage ref: C7 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    },
+    {
+      "id": "C8",
+      "title": "Help-text accuracy batch + don't assert empty stderr in tests",
+      "project": "CLI Help Text & Docs",
+      "projectKey": "4",
+      "priority": "P3",
+      "linearPriority": 4,
+      "linearPriorityLabel": "Low",
+      "labels": [
+        "help-text",
+        "docs"
+      ],
+      "type": null,
+      "prs": [
+        26,
+        31,
+        32,
+        24,
+        22,
+        25
+      ],
+      "prLinks": [
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/26",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/31",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/32",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/24",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/22",
+        "https://github.com/gardinermichael/iai-personal-memory-engine/pull/25"
+      ],
+      "reviewers": [
+        "gemini",
+        "codex"
+      ],
+      "impact": "A batch of factual corrections to help/doc strings: `iai last` uses `-n` (not `--n`); the crypto subcommand is `recover-prior-key` (not `recover-with-prior-key`, 3 places); the lockfile is `.lock` (not `.locked`); `iai-mcp doctor` runs 25 checks (not a \"17-row\" checklist); `set-budget` persists a percentage/`daily_quota_pct_override`, not a token budget; `schema-cleanup` is a top-level command and shouldn't be documented under the `maintenance` subparser; and the `epilog` triple-quoted string produces a double blank line. Plus: the CLI help test strictly asserts `stderr` is empty, which is fragile to deprecation/resource warnings - assert on the command's success/exit code instead.",
+      "affected": "`docs/commands.md` (~L35, L170, L180, L199), `src/iai_mcp/cli/__init__.py` (~L357 epilog, L853 schema-cleanup, L765 set-budget, L968 `.lock`), `src/iai_mcp/iai_cli.py:541` (doctor count), `tests/test_cli_help_text.py:30`.",
+      "source": "#26 (gemini `:35/:170/:180/:199`), #31 (gemini `:968/:541`), #32 (codex `:765`, `:804`), #24 (gemini `:853`), #22 (gemini `:357`), #25 (gemini `test_cli_help_text.py:30`).",
+      "body": "**Impact:** A batch of factual corrections to help/doc strings: `iai last` uses `-n` (not `--n`); the crypto subcommand is `recover-prior-key` (not `recover-with-prior-key`, 3 places); the lockfile is `.lock` (not `.locked`); `iai-mcp doctor` runs 25 checks (not a \"17-row\" checklist); `set-budget` persists a percentage/`daily_quota_pct_override`, not a token budget; `schema-cleanup` is a top-level command and shouldn't be documented under the `maintenance` subparser; and the `epilog` triple-quoted string produces a double blank line. Plus: the CLI help test strictly asserts `stderr` is empty, which is fragile to deprecation/resource warnings - assert on the command's success/exit code instead.\n\n**Affected:** `docs/commands.md` (~L35, L170, L180, L199), `src/iai_mcp/cli/__init__.py` (~L357 epilog, L853 schema-cleanup, L765 set-budget, L968 `.lock`), `src/iai_mcp/iai_cli.py:541` (doctor count), `tests/test_cli_help_text.py:30`.\n\n**Source (reviewers + PRs):** #26 (gemini `:35/:170/:180/:199`), #31 (gemini `:968/:541`), #32 (codex `:765`, `:804`), #24 (gemini `:853`), #22 (gemini `:357`), #25 (gemini `test_cli_help_text.py:30`).\n\n**PR links:** [#26](https://github.com/gardinermichael/iai-personal-memory-engine/pull/26) · [#31](https://github.com/gardinermichael/iai-personal-memory-engine/pull/31) · [#32](https://github.com/gardinermichael/iai-personal-memory-engine/pull/32) · [#24](https://github.com/gardinermichael/iai-personal-memory-engine/pull/24) · [#22](https://github.com/gardinermichael/iai-personal-memory-engine/pull/22) · [#25](https://github.com/gardinermichael/iai-personal-memory-engine/pull/25)\n\n---\n_Triage ref: C8 · Project 4 (CLI Help Text & Docs) · from the Outline PR-triage gameplan._"
+    }
+  ]
+}

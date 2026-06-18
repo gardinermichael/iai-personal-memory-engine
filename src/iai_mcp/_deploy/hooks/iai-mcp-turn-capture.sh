@@ -13,30 +13,30 @@
 set -u
 input=$(cat 2>/dev/null || true)
 
-# Extract session_id and transcript_path in a single subprocess call.
+# Extract shared hook-host fields in a single subprocess call.
 _extract_tmp=$(mktemp 2>/dev/null || echo "/tmp/iai-mcp-turn-extract-$$.tmp")
 if command -v jq >/dev/null 2>&1; then
-  printf '%s' "$input" | jq -r '(.session_id // "") + "\t" + (.transcript_path // "")' >"$_extract_tmp" 2>/dev/null
+  printf '%s' "$input" | jq -r '(.session_id // "") + "\t" + (.transcript_path // "") + "\t" + (.hook_event_name // "")' >"$_extract_tmp" 2>/dev/null
 else
   printf '%s' "$input" | /usr/bin/python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
-    print((d.get('session_id') or '') + '\t' + (d.get('transcript_path') or ''))
+    print((d.get('session_id') or '') + '\t' + (d.get('transcript_path') or '') + '\t' + (d.get('hook_event_name') or ''))
 except Exception:
-    print('\t')
+    print('\t\t')
 " >"$_extract_tmp" 2>/dev/null
 fi
 _TAB=$(printf '\t')
-IFS="$_TAB" read -r session_id transcript_path < "$_extract_tmp"
+IFS="$_TAB" read -r session_id transcript_path hook_event_name < "$_extract_tmp"
 rm -f "$_extract_tmp" 2>/dev/null || true
 
 mkdir -p "$HOME/.iai-mcp/logs" 2>/dev/null || true
 log="$HOME/.iai-mcp/logs/turn-capture-$(date -u +%Y-%m-%d).log"
 ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-if [ -z "$session_id" ] || [ -z "$transcript_path" ]; then
-  echo "$ts skipped: missing session_id or transcript_path" >> "$log" 2>/dev/null
+if [ -z "$session_id" ]; then
+  echo "$ts skipped: missing session_id" >> "$log" 2>/dev/null
   exit 0
 fi
 
@@ -50,26 +50,22 @@ from pathlib import Path
 MAX_TURNS = 100_000
 
 session_id = sys.argv[1]
-stdin_path = Path(sys.argv[2]).expanduser()
+codex_transcript_path = Path(sys.argv[2]).expanduser() if sys.argv[2] else None
 home = Path(os.environ.get("HOME", str(Path.home())))
 
-# Resolve the canonical transcript for this session.
+# Resolve the transcript for this session.
 #
-# Claude Code sometimes passes a transcript_path via hook stdin that is stale,
-# points to an empty file, or belongs to a different session entirely.  The
-# stdin path is the result of whatever the host process had on hand at fire
-# time, which may be empty or wrong even when it physically exists on disk.
+# Hook hosts may pass transcript_path via stdin. Prefer that stdin-derived,
+# Codex-compatible path when it is present and usable. Only fall back to the
+# Claude-specific ~/.claude/projects scan when stdin omitted transcript_path,
+# passed an empty path, or pointed at a missing/empty/unusable file.
 #
-# Strategy: ALWAYS scan ~/.claude/projects/*/{session_id}.jsonl first.  If the
-# canonical file exists and is non-empty, use it — it is guaranteed to contain
-# this session only.  Fall back to the stdin path only when the canonical file
-# is absent or empty (early first-fire timing race).  If neither source has
-# content, exit cleanly — the Stop hook will capture at session end.
-#
-# This makes offset accounting safe: the offset is always relative to one
-# consistent file (canonical > stdin), preventing line-number skew across fires.
+# This keeps offset accounting relative to the host-provided transcript when
+# available, while preserving Claude fallback behavior for early first-fire
+# timing races or older payloads. If neither source has content, exit cleanly —
+# the Stop hook will capture at session end.
 
-def _scan_canonical(home: Path, session_id: str):
+def _scan_claude_canonical(home: Path, session_id: str):
     projects_dir = home / ".claude" / "projects"
     if not projects_dir.is_dir():
         return None
@@ -80,13 +76,20 @@ def _scan_canonical(home: Path, session_id: str):
             return candidate
     return None
 
-canonical = _scan_canonical(home, session_id)
-if canonical is not None:
-    transcript_path = canonical
-elif stdin_path.exists() and stdin_path.stat().st_size > 0:
-    transcript_path = stdin_path
+def _is_usable(path):
+    try:
+        return path is not None and path.is_file() and path.stat().st_size > 0
+    except OSError:
+        return False
+
+if _is_usable(codex_transcript_path):
+    transcript_path = codex_transcript_path
 else:
-    sys.exit(0)
+    claude_canonical_path = _scan_claude_canonical(home, session_id)
+    if claude_canonical_path is not None:
+        transcript_path = claude_canonical_path
+    else:
+        sys.exit(0)
 
 deferred_dir = home / ".iai-mcp" / ".deferred-captures"
 state_dir = home / ".iai-mcp" / ".capture-state"

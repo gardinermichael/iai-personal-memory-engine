@@ -11,11 +11,12 @@
 # Fail-safe by design: any error exits 0 so session teardown is never blocked.
 # Logs go to ~/.iai-mcp/logs/capture-YYYY-MM-DD.log for audit.
 #
-# Hook payload (stdin JSON from Claude Code) contains:
+# Hook payload (stdin JSON from Claude Code and Codex-compatible hook hosts)
+# contains shared fields such as:
 #   - session_id       (UUID of the session that just ended)
-#   - transcript_path  (absolute path to the session JSONL) — available in
-#                      newer Claude Code builds; we fall back to scanning the
-#                      per-project transcript dir for the matching session_id.
+#   - transcript_path  (absolute path to the session JSONL) — when absent, we
+#                      fall back only to Claude Code's per-project transcript
+#                      dir for the matching session_id.
 #   - cwd              (working directory at session end)
 
 set -u  # no -e: we must not abort on errors, fail-safe is paramount
@@ -42,8 +43,8 @@ session_id=$(extract "session_id")
 transcript_path=$(extract "transcript_path")
 cwd=$(extract "cwd")
 
-# Fallback: locate transcript if the hook payload didn't include its path.
-# Claude Code stores transcripts under ~/.claude/projects/{cwd-hash}/{uuid}.jsonl
+# Claude fallback: locate transcript if the hook payload did not include its
+# path. Claude Code stores transcripts under ~/.claude/projects/{cwd-hash}/{uuid}.jsonl
 if [ -z "$transcript_path" ] && [ -n "$session_id" ]; then
   projects_dir="$HOME/.claude/projects"
   if [ -d "$projects_dir" ]; then

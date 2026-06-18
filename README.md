@@ -261,6 +261,18 @@ All records are encrypted at rest with AES-256-GCM. The key lives in `~/.iai-mcp
 
 Everything lives at `~/.iai-mcp/`. Embeddings are computed locally. The only data that leaves the machine is your normal conversation with whatever LLM API your client uses.
 
+### Historical transcript import safety
+
+When repairing historical transcript metadata, start with a dry run:
+
+```bash
+iai-mcp migrate --rederive-timestamps --dry-run --since 2026-01-01 --before 2026-02-01
+```
+
+Use `--since YYYY-MM-DD` and `--before YYYY-MM-DD` to bound the import window, repeat `--include <glob>` / `--exclude <glob>` to filter transcript paths, and use `--exclude-project <path-or-name>` to skip an inferred Claude project directory from `~/.claude/projects/<project>/<session>.jsonl`. Non-dry-run imports that would touch a large batch are refused unless you pass `--yes`.
+
+**Safety note:** historical imports read old transcripts verbatim. If an old transcript contains a token, password, or other secret, the import may capture it exactly as it appears there. Review `--dry-run` output and filters first. For supported storage safety workflows, see `iai-mcp crypto status`, `iai-mcp crypto rotate`, and `iai-mcp crypto redact-undecryptable`.
+
 <p align="center"><img src="docs/assets/slides/slide-10.jpg" width="850" alt="iai-pme"></p>
 
 ---

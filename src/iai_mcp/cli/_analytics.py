@@ -111,8 +111,44 @@ def cmd_migrate(args: argparse.Namespace) -> int:
 
     if bool(getattr(args, "rederive_timestamps", False)):
         from iai_mcp.migrate import migrate_rederive_collapsed_timestamps
+
         dry_run = bool(getattr(args, "dry_run", False))
-        result = migrate_rederive_collapsed_timestamps(store, dry_run=dry_run)
+        filters = {
+            "since": getattr(args, "since", None),
+            "before": getattr(args, "before", None),
+            "include": list(getattr(args, "include", []) or []),
+            "exclude": list(getattr(args, "exclude", []) or []),
+            "exclude_project": list(getattr(args, "exclude_project", []) or []),
+        }
+        if not dry_run and not bool(getattr(args, "yes", False)):
+            try:
+                estimate = migrate_rederive_collapsed_timestamps(
+                    store, dry_run=True, **filters
+                )
+            except ValueError as exc:
+                print(str(exc), file=_cli.sys.stderr)
+                return 2
+            large_batch_threshold = 100
+            if int(estimate["records_updated"]) >= large_batch_threshold:
+                print(
+                    "Refusing to import a large historical transcript batch "
+                    f"({estimate['records_updated']} records) without --yes. "
+                    "Run with --dry-run first and review filters. WARNING: "
+                    "imports may capture old secrets exactly as they appear in "
+                    "transcripts. Supported safety tools include `iai-mcp crypto "
+                    "status`, `iai-mcp crypto rotate`, and `iai-mcp crypto "
+                    "redact-undecryptable`.",
+                    file=_cli.sys.stderr,
+                )
+                return 2
+
+        try:
+            result = migrate_rederive_collapsed_timestamps(
+                store, dry_run=dry_run, **filters
+            )
+        except ValueError as exc:
+            print(str(exc), file=_cli.sys.stderr)
+            return 2
         prefix = "[dry-run] would update" if dry_run else "updated"
         print(
             f"{prefix} {result['records_updated']} records; "

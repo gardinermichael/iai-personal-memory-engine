@@ -332,8 +332,78 @@ from ._daemon import (
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="iai-mcp")
+    parser = argparse.ArgumentParser(
+        prog="iai-mcp",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  iai-mcp import-sessions --target all --dry-run
+  iai-mcp import-sessions --target claude --yes
+  iai-mcp import-sessions --path ~/old-transcripts --dry-run
+""",
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
+
+    imp = sub.add_parser(
+        "import-sessions",
+        help=(
+            "[writes memory] backfill old local assistant transcripts into "
+            "episodic memory"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "[writes memory] Backfill old local assistant transcripts into "
+            "episodic memory.\n\n"
+            "By default, --target claude discovers Claude transcripts from "
+            "the standard local Claude locations (for example ~/.claude "
+            "and Claude application-support history when present), while "
+            "--target codex discovers Codex transcripts from the standard "
+            "local Codex locations (for example ~/.codex when present). "
+            "Use --target all to scan both host families, or --path to scan "
+            "an explicit transcript directory instead.\n\n"
+            "Imports write to the active iai-mcp memory store. If "
+            "IAI_MCP_STORE is set, that store is used; otherwise the default "
+            "~/.iai-mcp store is used.\n\n"
+            "Use --dry-run to preview matching files and planned imports "
+            "without writing memory. Transcript formats are parsed "
+            "best-effort because Claude, Codex, and other hosts may change "
+            "local transcript schemas over time."
+        ),
+    )
+    imp.add_argument(
+        "--target",
+        choices=("all", "claude", "codex"),
+        default="all",
+        help=(
+            "host transcript family to discover from default locations "
+            "(default: all)"
+        ),
+    )
+    imp.add_argument(
+        "--path",
+        type=Path,
+        help=(
+            "explicit transcript file or directory to scan instead of host "
+            "default discovery locations"
+        ),
+    )
+    imp.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="preview files and planned imports without writing memory",
+    )
+    imp.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm importing without an interactive prompt",
+    )
+
+    def _cmd_import_sessions_lazy(args: argparse.Namespace) -> int:
+        from iai_mcp.cli._import_sessions import cmd_import_sessions
+
+        return cmd_import_sessions(args)
+
+    imp.set_defaults(func=_cmd_import_sessions_lazy)
 
     h = sub.add_parser("health", help="show LLM health status")
     h.set_defaults(func=cmd_health)

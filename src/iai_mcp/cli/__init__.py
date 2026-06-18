@@ -356,7 +356,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     m.add_argument("--from", dest="from_", type=int, default=1)
     m.add_argument("--to", type=int, default=2)
-    m.add_argument("--dry-run", action="store_true")
+    m.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="preview migration/import changes without writing (recommended first)",
+    )
     m.add_argument("--verbose", "-v", action="store_true")
     m.add_argument(
         "--resume",
@@ -372,12 +376,50 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     m.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm large historical transcript imports without an interactive warning",
+    )
+    m.add_argument(
+        "--since",
+        metavar="YYYY-MM-DD",
+        help="only import transcript timestamps on or after this UTC date",
+    )
+    m.add_argument(
+        "--before",
+        metavar="YYYY-MM-DD",
+        help="only import transcript timestamps before this UTC date",
+    )
+    m.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        metavar="GLOB",
+        help="only read transcript paths matching this glob (repeatable)",
+    )
+    m.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="GLOB",
+        help="skip transcript paths matching this glob (repeatable)",
+    )
+    m.add_argument(
+        "--exclude-project",
+        action="append",
+        default=[],
+        metavar="PATH_OR_NAME",
+        help="skip an inferred Claude project directory by path or project name (repeatable)",
+    )
+    m.add_argument(
         "--rederive-timestamps",
         action="store_true",
         help=(
-            "Re-derive collapsed created_at timestamps from on-disk transcripts. "
-            "One-time operation; idempotent. Records with no recoverable transcript "
-            "are left unchanged."
+            "Historical transcript import: re-derive collapsed created_at timestamps "
+            "from on-disk transcripts. WARNING: transcripts may contain old "
+            "secrets exactly as typed; preview with --dry-run first. Use "
+            "crypto status/rotate and crypto redact-undecryptable for supported "
+            "crypto/redaction workflows."
         ),
     )
     m.set_defaults(func=cmd_migrate)

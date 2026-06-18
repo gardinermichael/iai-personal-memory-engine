@@ -512,3 +512,85 @@ def test_migrate_rederive_writes_event(tmp_path):
     events = query_events(store, kind="migration_rederive_timestamps")
     assert len(events) >= 1
     assert "records_updated" in events[0]["data"]
+
+
+def test_migrate_rederive_filters_date_range_and_paths(tmp_path):
+    from iai_mcp.migrate import migrate_rederive_collapsed_timestamps
+    from iai_mcp.store import MemoryStore
+
+    store = MemoryStore(path=tmp_path)
+    session_id = "sess-filter"
+    transcript_root = tmp_path / "transcripts"
+    collapsed_ts = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+    uuids = [str(uuid4()) for _ in range(3)]
+    records = [
+        _make_episodic_record(f"Filtered turn {i}", session_id, uuids[i], collapsed_ts)
+        for i in range(3)
+    ]
+    for record in records:
+        store.insert(record)
+
+    project_dir = transcript_root / "safe-project"
+    project_dir.mkdir(parents=True)
+    with (project_dir / f"{session_id}.jsonl").open("w") as f:
+        timestamps = [
+            "2026-06-30T23:59:59Z",
+            "2026-07-01T00:00:00Z",
+            "2026-07-02T00:00:00Z",
+        ]
+        for i, ts in enumerate(timestamps):
+            f.write(_json.dumps({"uuid": uuids[i], "timestamp": ts}) + "\n")
+
+    result = migrate_rederive_collapsed_timestamps(
+        store,
+        transcript_root=transcript_root,
+        since="2026-07-01",
+        before="2026-07-02",
+        include=["*safe-project*"],
+    )
+
+    assert result["records_updated"] == 1
+    assert store.get(records[0].id).created_at == collapsed_ts
+    assert store.get(records[1].id).created_at != collapsed_ts
+    assert store.get(records[2].id).created_at == collapsed_ts
+
+
+def test_migrate_rederive_exclude_project_name(tmp_path):
+    from iai_mcp.migrate import migrate_rederive_collapsed_timestamps
+    from iai_mcp.store import MemoryStore
+
+    store = MemoryStore(path=tmp_path)
+    session_id = "sess-project-filter"
+    transcript_root = tmp_path / "transcripts"
+    collapsed_ts = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    uuids = [str(uuid4()) for _ in range(3)]
+    records = [
+        _make_episodic_record(
+            f"Project filtered turn {i}", session_id, uuids[i], collapsed_ts
+        )
+        for i in range(3)
+    ]
+    for record in records:
+        store.insert(record)
+
+    excluded_dir = transcript_root / "excluded-project"
+    excluded_dir.mkdir(parents=True)
+    with (excluded_dir / f"{session_id}.jsonl").open("w") as f:
+        for i in range(3):
+            f.write(
+                _json.dumps(
+                    {"uuid": uuids[i], "timestamp": f"2026-08-01T00:0{i}:00Z"}
+                )
+                + "\n"
+            )
+
+    result = migrate_rederive_collapsed_timestamps(
+        store,
+        transcript_root=transcript_root,
+        exclude_project=["excluded-project"],
+    )
+
+    assert result["records_updated"] == 0
+    assert result["skipped_no_transcript"] == 3
+    for record in records:
+        assert store.get(record.id).created_at == collapsed_ts

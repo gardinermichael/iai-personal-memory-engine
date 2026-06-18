@@ -5,8 +5,10 @@ for records whose timestamps collapsed to a single shared value.
 """
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
+from datetime import datetime, time, timezone
 from pathlib import Path
 
 from iai_mcp.events import write_event
@@ -25,6 +27,10 @@ def _find_transcript_ts(
     source_uuid: str | None,
     literal_surface: str,
     transcript_root: Path,
+    *,
+    transcript_paths: "list[Path] | None" = None,
+    since: "datetime | None" = None,
+    before: "datetime | None" = None,
 ) -> "datetime | None":
     """Return the parsed transcript timestamp for a record, or None if unresolvable.
 
@@ -38,8 +44,11 @@ def _find_transcript_ts(
     if not session_id or "/" in session_id or ".." in session_id:
         return None
 
-    pattern = f"*/{session_id}.jsonl"
-    matches = list(transcript_root.glob(pattern))
+    if transcript_paths is None:
+        pattern = f"*/{session_id}.jsonl"
+        matches = list(transcript_root.glob(pattern))
+    else:
+        matches = list(transcript_paths)
     if not matches:
         return None
 
@@ -61,9 +70,16 @@ def _find_transcript_ts(
                     ts_str = obj.get("timestamp")
                     if not ts_str:
                         continue
+                    parsed_ts = _resolve_ts(ts_str)
+                    if parsed_ts is None:
+                        continue
+                    if since is not None and parsed_ts < since:
+                        continue
+                    if before is not None and parsed_ts >= before:
+                        continue
                     # Fast path: uuid match.
                     if source_uuid and obj.get("uuid") == source_uuid:
-                        return _resolve_ts(ts_str)
+                        return parsed_ts
                     # Content-hash fallback: compare against message text fields.
                     text_candidate = (
                         obj.get("text")
@@ -84,11 +100,70 @@ def _find_transcript_ts(
                             text_candidate.encode("utf-8")
                         ).hexdigest()
                         if candidate_hash == surface_hash:
-                            return _resolve_ts(ts_str)
+                            return parsed_ts
         except (OSError, UnicodeDecodeError):
             continue
 
     return None
+
+
+def _parse_yyyy_mm_dd(value: str | None, *, option: str) -> "datetime | None":
+    if not value:
+        return None
+    try:
+        day = datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValueError(f"{option} must be in YYYY-MM-DD format") from exc
+    return datetime.combine(day, time.min, tzinfo=timezone.utc)
+
+
+def _path_matches_any(path: Path, patterns: list[str]) -> bool:
+    text = path.as_posix()
+    name = path.name
+    return any(
+        fnmatch.fnmatch(text, pat) or fnmatch.fnmatch(name, pat)
+        for pat in patterns
+    )
+
+
+def _project_name_from_transcript_path(path: Path, transcript_root: Path) -> str | None:
+    try:
+        rel = path.relative_to(transcript_root)
+    except ValueError:
+        return path.parent.name or None
+    return rel.parts[0] if len(rel.parts) >= 2 else None
+
+
+def _filter_transcript_paths(
+    paths: list[Path],
+    transcript_root: Path,
+    *,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    exclude_project: list[str] | None = None,
+) -> list[Path]:
+    include = include or []
+    exclude = exclude or []
+    exclude_project = exclude_project or []
+    out: list[Path] = []
+    project_filters = {item.rstrip("/") for item in exclude_project}
+    for path in paths:
+        if include and not _path_matches_any(path, include):
+            continue
+        if exclude and _path_matches_any(path, exclude):
+            continue
+        project_name = _project_name_from_transcript_path(path, transcript_root)
+        if project_filters:
+            path_text = path.as_posix().rstrip("/")
+            parent_text = path.parent.as_posix().rstrip("/")
+            if (
+                (project_name and project_name in project_filters)
+                or path_text in project_filters
+                or parent_text in project_filters
+            ):
+                continue
+        out.append(path)
+    return out
 
 
 def migrate_rederive_collapsed_timestamps(
@@ -96,6 +171,11 @@ def migrate_rederive_collapsed_timestamps(
     *,
     dry_run: bool = False,
     transcript_root: "Path | None" = None,
+    since: str | None = None,
+    before: str | None = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    exclude_project: list[str] | None = None,
 ) -> dict:
     """Re-derive per-turn created_at from on-disk transcripts for records
     whose timestamps collapsed to a single shared value.
@@ -108,6 +188,11 @@ def migrate_rederive_collapsed_timestamps(
     literal_surface and provenance_json are never touched.
     """
     from iai_mcp.hippo import HippoDB
+
+    since_dt = _parse_yyyy_mm_dd(since, option="--since")
+    before_dt = _parse_yyyy_mm_dd(before, option="--before")
+    if since_dt is not None and before_dt is not None and since_dt >= before_dt:
+        raise ValueError("--since must be earlier than --before")
 
     if transcript_root is None:
         transcript_root = Path.home() / ".claude" / "projects"
@@ -194,7 +279,13 @@ def migrate_rederive_collapsed_timestamps(
             done_ids.add(rec_id_str)
             continue
 
-        transcript_matches = list(transcript_root.glob(f"*/{session_id}.jsonl"))
+        transcript_matches = _filter_transcript_paths(
+            list(transcript_root.glob(f"*/{session_id}.jsonl")),
+            transcript_root,
+            include=include,
+            exclude=exclude,
+            exclude_project=exclude_project,
+        )
         if not transcript_matches:
             skipped_no_transcript += 1
             done_ids.add(rec_id_str)
@@ -205,6 +296,9 @@ def migrate_rederive_collapsed_timestamps(
             source_uuid=source_uuid,
             literal_surface=rec.literal_surface,
             transcript_root=transcript_root,
+            transcript_paths=transcript_matches,
+            since=since_dt,
+            before=before_dt,
         )
 
         if ts is None:

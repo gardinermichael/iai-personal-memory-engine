@@ -331,28 +331,55 @@ from ._daemon import (
 )
 
 
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="iai-mcp")
-    sub = parser.add_subparsers(dest="cmd", required=True)
+def _raw_help_parser(*args, **kwargs) -> argparse.ArgumentParser:
+    """Create an argparse parser that preserves multiline help text."""
+    kwargs.setdefault("formatter_class", argparse.RawDescriptionHelpFormatter)
+    return argparse.ArgumentParser(*args, **kwargs)
 
-    h = sub.add_parser("health", help="show LLM health status")
+
+def _examples(*lines: str) -> str:
+    """Format parser epilog examples consistently."""
+    return "Examples:\n  " + "\n  ".join(lines)
+
+
+def _side_effect_help(label: str, text: str) -> str:
+    """Prefix help with a side-effect label such as read-only/writes memory."""
+    return f"[{label}] {text}"
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = _raw_help_parser(
+        prog="iai-mcp",
+        epilog=_examples(
+            "iai-mcp health",
+            "iai-mcp daemon status",
+            "iai-mcp maintenance compact-hippo --dry-run",
+        ),
+    )
+    sub = parser.add_subparsers(
+        dest="cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
+
+    h = sub.add_parser("health", help=_side_effect_help("read-only", "show LLM health status"))
     h.set_defaults(func=cmd_health)
 
     bn = sub.add_parser(
         "build-native",
-        help=(
+        help=_side_effect_help("maintenance", (
             "compile the Rust native extension (iai_mcp_native) in-place. "
             "Run after Python upgrade or on fresh clone. Requires cargo."
-        ),
+        )),
     )
     bn.set_defaults(func=cmd_build_native)
 
     m = sub.add_parser(
         "migrate",
-        help=(
+        help=_side_effect_help("maintenance", (
             "migrate records: 1->2 (schema) or 2->3 (encryption); "
             "OR --resume / --rollback a partial reembed migration"
-        ),
+        )),
     )
     m.add_argument("--from", dest="from_", type=int, default=1)
     m.add_argument("--to", type=int, default=2)
@@ -384,9 +411,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser(
         "crypto",
-        help="encryption key management",
+        help=_side_effect_help("maintenance", "encryption key management"),
+        epilog=_examples(
+            "iai-mcp crypto status",
+            "iai-mcp crypto init --user-id default",
+        ),
     )
-    crypto_sub = c.add_subparsers(dest="crypto_cmd", required=True)
+    crypto_sub = c.add_subparsers(
+        dest="crypto_cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
 
     cs = crypto_sub.add_parser(
         "status",
@@ -471,7 +506,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     t = sub.add_parser(
         "trajectory",
-        help="aggregate M1..M6 trajectory events",
+        help=_side_effect_help("read-only", "aggregate M1..M6 trajectory events"),
     )
     t.add_argument(
         "--since",
@@ -483,16 +518,19 @@ def _build_parser() -> argparse.ArgumentParser:
 
     topo = sub.add_parser(
         "topology",
-        help="live small-world topology snapshot: C, L, sigma, communities, rich-club ratio, N, regime",
+        help=_side_effect_help(
+            "read-only",
+            "live small-world topology snapshot: C, L, sigma, communities, rich-club ratio, N, regime",
+        ),
     )
     topo.set_defaults(func=cmd_topology)
 
     cap = sub.add_parser(
         "capture-transcript",
-        help=(
+        help=_side_effect_help("writes memory", (
             "batch-capture a Claude Code JSONL transcript into episodic tier. "
             "Used by the Stop hook for ambient WRITE-side observation capture."
-        ),
+        )),
     )
     cap.add_argument("transcript_path", help="path to the Claude Code JSONL transcript file")
     cap.add_argument("--session-id", default="-", help="session id for provenance")
@@ -513,10 +551,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ctd = sub.add_parser(
         "capture-turn-deferred",
-        help=(
+        help=_side_effect_help("writes memory", (
             "append a single JSONL event per new transcript turn to "
             "{session_id}.live.jsonl. UserPromptSubmit-hook backend."
-        ),
+        )),
     )
     ctd.add_argument("--session-id", required=True)
     ctd.add_argument("--transcript-path", required=True)
@@ -530,30 +568,41 @@ def _build_parser() -> argparse.ArgumentParser:
 
     ssp = sub.add_parser(
         "session-start",
-        help=(
+        help=_side_effect_help("read-only", (
             "print the session-start recall payload as markdown on stdout. "
             "Hook target for ~/.claude/hooks/iai-mcp-session-recall.sh."
-        ),
+        )),
     )
     ssp.add_argument("--session-id", default="-", help="session id for provenance")
     ssp.set_defaults(func=cmd_session_start)
 
     sris = sub.add_parser(
         "session-refresh-if-stale",
-        help=(
+        help=_side_effect_help("read-only", (
             "UserPromptSubmit hook gate: compare MAX(created_at) against the "
             "per-session watermark sidecar; call session_refresh_if_stale RPC "
             "only when new memory exists; emit additionalContext JSON on trigger."
-        ),
+        )),
     )
     sris.add_argument("--session-id", default="-", help="session id for watermark sidecar")
     sris.set_defaults(func=cmd_session_refresh_if_stale)
 
     ch = sub.add_parser(
         "capture-hooks",
-        help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
+        help=_side_effect_help(
+            "maintenance",
+            "install/uninstall/status the Claude Code Stop hook for ambient session capture",
+        ),
+        epilog=_examples(
+            "iai-mcp capture-hooks status",
+            "iai-mcp capture-hooks install",
+        ),
     )
-    ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
+    ch_sub = ch.add_subparsers(
+        dest="capture_hooks_cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
     ch_sub.add_parser("install",
                       help="copy Stop hook to ~/.claude/hooks/ and register in settings.json"
                       ).set_defaults(func=cmd_capture_hooks_install)
@@ -566,7 +615,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     a = sub.add_parser(
         "audit",
-        help="identity + shield audit log",
+        help=_side_effect_help("read-only", "identity + shield audit log"),
     )
     a.add_argument(
         "--since",
@@ -580,7 +629,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="filter by severity",
     )
-    audit_sub = a.add_subparsers(dest="audit_sub")
+    audit_sub = a.add_subparsers(dest="audit_sub", parser_class=_raw_help_parser)
     for name, helptext in (
         ("shield", "shield-only audit (match counts redacted)"),
         ("drift", "detect M4 drift anomaly and surface it"),
@@ -597,9 +646,21 @@ def _build_parser() -> argparse.ArgumentParser:
 
     d = sub.add_parser(
         "daemon",
-        help="sleep daemon: install/uninstall/start/stop/status/logs/...",
+        help=_side_effect_help(
+            "maintenance",
+            "sleep daemon: install/uninstall/start/stop/status/logs/...",
+        ),
+        epilog=_examples(
+            "iai-mcp daemon status",
+            "iai-mcp daemon logs -n 100",
+            "iai-mcp daemon configure set-budget 0.01",
+        ),
     )
-    daemon_sub = d.add_subparsers(dest="daemon_cmd", required=True)
+    daemon_sub = d.add_subparsers(
+        dest="daemon_cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
 
     di = daemon_sub.add_parser(
         "install",
@@ -696,11 +757,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sc = sub.add_parser(
         "schema-cleanup",
-        help=(
+        help=_side_effect_help("maintenance", (
             "soft-delete duplicate schema records. Default "
             "mode is --dry-run; --apply snapshots the memory store dir and "
             "performs the cleanup. Idempotent (re-running is a no-op)."
-        ),
+        )),
     )
     sc_mode = sc.add_mutually_exclusive_group()
     sc_mode.add_argument(
@@ -728,12 +789,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     mtn = sub.add_parser(
         "maintenance",
-        help=(
+        help=_side_effect_help("maintenance", (
             "one-shot maintenance ops. Currently: compact-hippo "
             "(PRAGMA wal_checkpoint + VACUUM + hnswlib rebuild)."
+        )),
+        epilog=_examples(
+            "iai-mcp maintenance compact-hippo --dry-run",
+            "iai-mcp maintenance sleep-cycle --force",
         ),
     )
-    mtn_sub = mtn.add_subparsers(dest="maintenance_cmd", required=True)
+    mtn_sub = mtn.add_subparsers(
+        dest="maintenance_cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
     mtn_compact = mtn_sub.add_parser(
         "compact-hippo",
         help=(
@@ -878,13 +947,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
     doc = sub.add_parser(
         "doctor",
-        help=(
+        help=_side_effect_help("maintenance", (
             "Diagnose daemon health (incl. (g) duplicate-binder detection). "
             "With --apply, attempt safe repairs "
             "(unlink stale socket, kill duplicate binders, cleanup orphans, "
             "respawn daemon). With --apply --yes, skip confirmations. "
             "Exit 0=all green, 1=any FAIL, 2=--apply tried but FAIL persists."
-        ),
+        )),
     )
     doc.add_argument(
         "--apply",
@@ -916,12 +985,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     lc = sub.add_parser(
         "lifecycle",
-        help=(
+        help=_side_effect_help("read-only", (
             "inspect lifecycle state machine "
             "(WAKE/DROWSY/SLEEP/HIBERNATION). Currently: status."
+        )),
+        epilog=_examples(
+            "iai-mcp lifecycle status",
+            "iai-mcp lifecycle force-unlock --yes",
         ),
     )
-    lc_sub = lc.add_subparsers(dest="lifecycle_cmd", required=True)
+    lc_sub = lc.add_subparsers(
+        dest="lifecycle_cmd",
+        required=True,
+        parser_class=_raw_help_parser,
+    )
     lc_status = lc_sub.add_parser(
         "status",
         help=(
@@ -948,11 +1025,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     br = sub.add_parser(
         "bank-recall",
-        help=(
+        help=_side_effect_help("read-only", (
             "substring recall over bank/processed + bank/recent without "
             "booting the daemon. Used by the wrapper as a socket-dead "
             "fallback path."
-        ),
+        )),
     )
     br.add_argument("--query", required=True, help="cue substring to match")
     br.add_argument(
@@ -974,12 +1051,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     dpf = sub.add_parser(
         "drain-permanent-failed",
-        help=(
+        help=_side_effect_help("writes memory", (
             "recover terminal .permanent-failed-*.jsonl files from "
             ".deferred-captures/. Routes through daemon socket when daemon "
             "is running; direct-open fallback when daemon is down. "
             "--dry-run lists files without mutating anything."
-        ),
+        )),
     )
     dpf.add_argument(
         "--dry-run",

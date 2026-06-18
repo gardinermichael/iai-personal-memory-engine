@@ -122,3 +122,35 @@ def test_install_copies_turn_hook_script(home):
     assert turn_hook.exists()
     mode = turn_hook.stat().st_mode
     assert mode & stat.S_IXUSR, oct(mode)
+
+
+def test_install_writes_cli_path_cache_from_path(home, tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    cli = bin_dir / "iai-mcp"
+    cli.write_text("#!/bin/sh\n")
+    cli.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir))
+    monkeypatch.setattr("sys.argv", ["/not/executable/iai-mcp"])
+
+    rc = _install(home)
+
+    assert rc == 0
+    cached = (home / ".iai-mcp" / ".cli-path").read_text().strip()
+    assert cached == str(cli.resolve())
+
+
+def test_install_writes_cli_path_cache_from_argv_when_not_on_path(
+    home, tmp_path, monkeypatch
+):
+    cli = tmp_path / "argv-iai-mcp"
+    cli.write_text("#!/bin/sh\n")
+    cli.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    monkeypatch.setattr("sys.argv", [str(cli)])
+
+    rc = _install(home)
+
+    assert rc == 0
+    cached = (home / ".iai-mcp" / ".cli-path").read_text().strip()
+    assert cached == str(cli.resolve())

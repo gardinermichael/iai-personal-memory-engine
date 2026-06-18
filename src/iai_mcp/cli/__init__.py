@@ -308,6 +308,8 @@ from ._capture import (
     cmd_capture_hooks_status,
 )
 
+from ._import_sessions import cmd_import_sessions
+
 from ._daemon import (
     cmd_daemon_install,
     cmd_daemon_uninstall,
@@ -510,6 +512,67 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     cap.set_defaults(func=cmd_capture_transcript)
+
+    imp = sub.add_parser(
+        "import-sessions",
+        help="scan or import historical Claude Code/Codex CLI JSONL transcripts",
+    )
+    imp_sub = imp.add_subparsers(dest="import_sessions_cmd")
+    for name, helptext in (
+        ("scan", "list candidate transcript files without importing"),
+        ("import", "import candidate transcripts into episodic memory"),
+    ):
+        isp = imp_sub.add_parser(name, help=helptext)
+        isp.add_argument(
+            "--target",
+            choices=["claude", "codex", "all"],
+            default="all",
+            help="transcript family to discover from common locations (default: all)",
+        )
+        isp.add_argument(
+            "--path",
+            action="append",
+            default=[],
+            help="additional transcript file or directory to scan; may be repeated",
+        )
+        isp.add_argument(
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="list candidate transcripts without importing",
+        )
+        isp.add_argument(
+            "--max-turns",
+            type=int,
+            default=100_000,
+            help="maximum JSONL lines to scan per transcript (default: 100000)",
+        )
+        isp.set_defaults(func=cmd_import_sessions)
+    imp.add_argument(
+        "--target",
+        choices=["claude", "codex", "all"],
+        default="all",
+        help="transcript family to discover from common locations (default: all)",
+    )
+    imp.add_argument(
+        "--path",
+        action="append",
+        default=[],
+        help="additional transcript file or directory to scan; may be repeated",
+    )
+    imp.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="list candidate transcripts without importing",
+    )
+    imp.add_argument(
+        "--max-turns",
+        type=int,
+        default=100_000,
+        help="maximum JSONL lines to scan per transcript (default: 100000)",
+    )
+    imp.set_defaults(func=cmd_import_sessions)
 
     ctd = sub.add_parser(
         "capture-turn-deferred",

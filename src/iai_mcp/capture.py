@@ -400,13 +400,15 @@ def capture_transcript(
     path = Path(transcript_path).expanduser()
     if not path.exists():
         return {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 1,
-                "reason": f"transcript not found: {path}"}
+                "cap_reached": False, "reason": f"transcript not found: {path}"}
 
-    counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0}
+    counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0,
+              "cap_reached": False}
     seen = 0
     with path.open() as fh:
         for line in fh:
             if seen >= max_turns:
+                counts["cap_reached"] = True
                 break
             seen += 1
             try:

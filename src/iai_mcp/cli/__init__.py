@@ -291,6 +291,7 @@ from ._capture import (
     write_watermark,
     cmd_session_refresh_if_stale,
     cmd_capture_transcript,
+    cmd_import_sessions,
     cmd_capture_turn_deferred,
     _capture_hook_paths,
     _turn_hook_paths,
@@ -497,7 +498,10 @@ def _build_parser() -> argparse.ArgumentParser:
     cap.add_argument("transcript_path", help="path to the Claude Code JSONL transcript file")
     cap.add_argument("--session-id", default="-", help="session id for provenance")
     cap.add_argument("--max-turns", type=int, default=200,
-                     help="cap on turns to scan (default 200; older turns skipped)")
+                     help=(
+                         "limit JSONL lines/turns scanned (default 200 for Stop-hook "
+                         "compatibility; older turns skipped)"
+                     ))
     cap.add_argument(
         "--no-spawn",
         action="store_true",
@@ -510,6 +514,27 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     cap.set_defaults(func=cmd_capture_transcript)
+
+    imp = sub.add_parser(
+        "import-sessions",
+        help="import historical Claude Code JSONL session transcripts",
+    )
+    imp.add_argument(
+        "path",
+        nargs="?",
+        default="~/.claude/projects",
+        help="JSONL transcript file or directory tree to scan (default ~/.claude/projects)",
+    )
+    imp.add_argument(
+        "--max-turns",
+        type=int,
+        default=100_000,
+        help=(
+            "limit JSONL lines/turns scanned per transcript (default 100000; "
+            "raise or lower explicitly for historical imports)"
+        ),
+    )
+    imp.set_defaults(func=cmd_import_sessions)
 
     ctd = sub.add_parser(
         "capture-turn-deferred",

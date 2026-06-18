@@ -259,6 +259,61 @@ def cmd_capture_transcript(args: argparse.Namespace) -> int:
         return 0
 
 
+def cmd_import_sessions(args: argparse.Namespace) -> int:
+    """Import historical Claude Code JSONL session transcripts."""
+    import json as _json
+    import sys as _sys
+
+    from iai_mcp.capture import capture_transcript
+    from iai_mcp.store import MemoryStore
+
+    root = Path(args.path).expanduser()
+    max_turns = int(getattr(args, "max_turns", 100_000))
+    if max_turns <= 0:
+        print("import-sessions: --max-turns must be positive", file=_sys.stderr)
+        return 2
+    if not root.exists():
+        print(f"import-sessions: path not found: {root}", file=_sys.stderr)
+        return 2
+
+    paths = [root] if root.is_file() else sorted(root.rglob("*.jsonl"))
+    store = MemoryStore()
+    totals = {
+        "files": 0,
+        "inserted": 0,
+        "reinforced": 0,
+        "skipped": 0,
+        "errors": 0,
+        "cap_reached": 0,
+        "warnings": [],
+    }
+
+    for transcript in paths:
+        if not transcript.is_file():
+            continue
+        session_id = transcript.stem or "-"
+        counts = capture_transcript(
+            store,
+            transcript,
+            session_id=session_id,
+            max_turns=max_turns,
+        )
+        totals["files"] += 1
+        for key in ("inserted", "reinforced", "skipped", "errors"):
+            totals[key] += int(counts.get(key, 0))
+        if counts.get("cap_reached"):
+            totals["cap_reached"] += 1
+            warning = (
+                f"warning: {transcript} reached --max-turns={max_turns}; "
+                "it may have been partially imported"
+            )
+            totals["warnings"].append(warning)
+            print(warning, file=_sys.stderr)
+
+    print(_json.dumps(totals, ensure_ascii=False))
+    return 0
+
+
 def cmd_capture_turn_deferred(args: argparse.Namespace) -> int:
     import sys as _sys
 

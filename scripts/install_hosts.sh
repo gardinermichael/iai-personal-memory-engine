@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install or verify iai-mcp host integration for Claude Code, Claude Desktop,
-# and Codex CLI. Safe to re-run; preserves unrelated host configuration.
+# and Codex (CLI, IDE extension, and desktop app). Safe to re-run;
+# preserves unrelated host configuration.
 
 set -euo pipefail
 
@@ -67,13 +68,15 @@ config.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n")
 print(f"OK: ensured iai-mcp in {config}")
 PY
 
-step "Codex MCP and hooks config"
+step "Codex MCP and hooks config (CLI, IDE extension, desktop app)"
 python3 - "${WRAPPER_JS}" "${PYTHON_BIN}" "${IAI_STORE}" <<'PY'
 from pathlib import Path
 import re
 import sys
 
 wrapper, python_bin, store = sys.argv[1:4]
+# Codex CLI, the IDE extension, and the desktop app all read MCP settings
+# from this user-level config.toml.
 config = Path.home() / ".codex" / "config.toml"
 config.parent.mkdir(parents=True, exist_ok=True)
 text = config.read_text() if config.exists() else ""
@@ -110,8 +113,9 @@ else:
 if changed:
     config.write_text(text)
 print(f"OK: ensured iai-mcp MCP server and [features].hooks = true in {config}")
+print("OK: this covers the Codex CLI, IDE extension, and desktop app because they share config.toml")
 PY
-ok "Codex config updated without writing deprecated codex_hooks = true"
+ok "Codex CLI/IDE/desktop config updated without writing deprecated codex_hooks = true"
 
 step "Install capture hooks for all supported targets"
 iai-mcp capture-hooks install --target all

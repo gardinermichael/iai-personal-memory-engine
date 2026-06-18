@@ -12,7 +12,9 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_HOOK_TRUNCATION_TRAILER = "[... payload truncated to fit Claude Code 10000-char limit ...]"
+_HOOK_TRUNCATION_TRAILER = (
+    "[... payload truncated to fit Claude Code 10000-char limit ...]"
+)
 
 
 def _truncate_for_claude_code_hook(text: str, cap: int = 10000) -> str:
@@ -43,6 +45,7 @@ def cmd_session_start(args: argparse.Namespace) -> int:
 
     try:
         from iai_mcp.session import format_payload_as_markdown
+
         session_id = getattr(args, "session_id", "-") or "-"
         resp = _cli._send_jsonrpc_request(
             "session_start_payload", {"session_id": session_id}
@@ -159,7 +162,7 @@ def cmd_session_refresh_if_stale(args: argparse.Namespace) -> int:
     from iai_mcp import cli as _cli
 
     try:
-        session_id: str = (getattr(args, "session_id", None) or "-")
+        session_id: str = getattr(args, "session_id", None) or "-"
 
         current = get_max_created_at()
         if current is None:
@@ -229,7 +232,9 @@ def cmd_capture_transcript(args: argparse.Namespace) -> int:
                 cwd=os.getcwd(),
                 max_turns=args.max_turns,
             )
-            print(json.dumps({"status": "deferred", "path": str(out)}, ensure_ascii=False))
+            print(
+                json.dumps({"status": "deferred", "path": str(out)}, ensure_ascii=False)
+            )
             return 0
         except Exception as e:
             logger.error("capture-transcript --no-spawn failed: %s", e)
@@ -257,6 +262,39 @@ def cmd_capture_transcript(args: argparse.Namespace) -> int:
         logger.error("capture-transcript inline failed: %s", e)
         print(f"capture-transcript: failed {type(e).__name__}: {e}", file=_sys.stderr)
         return 0
+
+
+def cmd_import_sessions(args: argparse.Namespace) -> int:
+    import sys as _sys
+
+    from iai_mcp.capture import import_session_transcripts
+    from iai_mcp.store import MemoryStore
+
+    try:
+        store = MemoryStore(path=getattr(args, "store_path", None))
+        report = import_session_transcripts(
+            store,
+            targets=list(getattr(args, "targets", []) or []),
+            resume=bool(getattr(args, "resume", False)),
+            limit_files=getattr(args, "limit_files", None),
+            limit_turns_per_file=getattr(args, "limit_turns_per_file", None),
+        )
+        totals = report.get("totals", {})
+        print(
+            "totals: "
+            f"files_scanned={totals.get('files_scanned', 0)} "
+            f"files_imported={totals.get('files_imported', 0)} "
+            f"turns_inserted={totals.get('turns_inserted', 0)} "
+            f"turns_reinforced={totals.get('turns_reinforced', 0)} "
+            f"turns_skipped={totals.get('turns_skipped', 0)} "
+            f"parse_errors={totals.get('parse_errors', 0)} "
+            f"file_errors={totals.get('file_errors', 0)}"
+        )
+        return 0
+    except Exception as e:
+        logger.error("import-sessions failed: %s", e)
+        print(f"import-sessions: failed {type(e).__name__}: {e}", file=_sys.stderr)
+        return 1
 
 
 def cmd_capture_turn_deferred(args: argparse.Namespace) -> int:
@@ -301,7 +339,9 @@ def cmd_capture_turn_deferred(args: argparse.Namespace) -> int:
                 continue
             role, text, src_uuid, src_ts = parsed
             write_deferred_event(
-                args.session_id, role, text,
+                args.session_id,
+                role,
+                text,
                 cwd=cwd,
                 ts=src_ts,
                 source_uuid=src_uuid,
@@ -437,7 +477,9 @@ def _patch_claude_code_config(action: str) -> str:
         try:
             data = _json.loads(cfg_path.read_text())
         except (OSError, ValueError) as e:
-            return f"Claude Code: ~/.claude.json unreadable ({type(e).__name__}) — skipped"
+            return (
+                f"Claude Code: ~/.claude.json unreadable ({type(e).__name__}) — skipped"
+            )
         servers = data.get("mcpServers", {})
         if "iai-mcp" in servers:
             servers.pop("iai-mcp")
@@ -500,6 +542,7 @@ def _session_recall_hook_paths() -> tuple:
 
 def _load_settings(path):
     import json as _json
+
     if not path.exists():
         return {}
     try:
@@ -517,10 +560,15 @@ def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
     turn_src, turn_dst = _turn_hook_paths()
 
     if not src.exists():
-        print(f"ERROR: hook template missing in package data: {src}", file=_cli.sys.stderr)
+        print(
+            f"ERROR: hook template missing in package data: {src}", file=_cli.sys.stderr
+        )
         return 1
     if not turn_src.exists():
-        print(f"ERROR: turn-hook template missing in package data: {turn_src}", file=_cli.sys.stderr)
+        print(
+            f"ERROR: turn-hook template missing in package data: {turn_src}",
+            file=_cli.sys.stderr,
+        )
         return 1
 
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -543,25 +591,33 @@ def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
     turn_cmd = f"bash {turn_dst}"
 
     already_stop = any(
-        any(_CAPTURE_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
+        any(
+            _CAPTURE_HOOK_MARKER in (h.get("command") or "")
+            for h in (entry.get("hooks") or [])
+        )
         for entry in stop_list
     )
     if already_stop:
         print(f"settings.json already has Stop hook — no change")
     else:
-        stop_list.append({"hooks": [{"type": "command", "command": hook_cmd, "timeout": 35}]})
+        stop_list.append(
+            {"hooks": [{"type": "command", "command": hook_cmd, "timeout": 35}]}
+        )
         print(f"patched: {settings} (Stop hook registered)")
 
     already_turn = any(
-        any(_TURN_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
+        any(
+            _TURN_HOOK_MARKER in (h.get("command") or "")
+            for h in (entry.get("hooks") or [])
+        )
         for entry in submit_list
     )
     if already_turn:
         print(f"settings.json already has UserPromptSubmit hook — no change")
     else:
-        submit_list.append({"hooks": [{"type": "command", "command": turn_cmd, "timeout": 5}]})
+        submit_list.append(
+            {"hooks": [{"type": "command", "command": turn_cmd, "timeout": 5}]}
+        )
         print(f"patched: {settings} (UserPromptSubmit hook registered)")
 
     src_recall, dst_recall, _ = _session_recall_hook_paths()
@@ -574,17 +630,23 @@ def cmd_capture_hooks_install(args: argparse.Namespace) -> int:
         ss_list = data["hooks"].setdefault("SessionStart", [])
         recall_cmd = f"bash {dst_recall}"
         already_recall = any(
-            any(_SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
-                for h in (entry.get("hooks") or []))
+            any(
+                _SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
+                for h in (entry.get("hooks") or [])
+            )
             for entry in ss_list
         )
         if already_recall:
             print("settings.json already has SessionStart hook — no change")
         else:
-            ss_list.append({
-                "matcher": "startup|resume|clear|compact",
-                "hooks": [{"type": "command", "command": recall_cmd, "timeout": 30}],
-            })
+            ss_list.append(
+                {
+                    "matcher": "startup|resume|clear|compact",
+                    "hooks": [
+                        {"type": "command", "command": recall_cmd, "timeout": 30}
+                    ],
+                }
+            )
             print(f"patched: {settings} (SessionStart hook registered)")
     else:
         print(f"WARN: recall hook template missing in package data: {src_recall}")
@@ -636,9 +698,12 @@ def cmd_capture_hooks_uninstall(args: argparse.Namespace) -> int:
         ):
             entries = data.get("hooks", {}).get(key, [])
             kept = [
-                entry for entry in entries
-                if not any(marker in (h.get("command") or "")
-                           for h in (entry.get("hooks") or []))
+                entry
+                for entry in entries
+                if not any(
+                    marker in (h.get("command") or "")
+                    for h in (entry.get("hooks") or [])
+                )
             ]
             if len(kept) != len(entries):
                 if kept:
@@ -655,9 +720,12 @@ def cmd_capture_hooks_uninstall(args: argparse.Namespace) -> int:
         data = _load_settings(settings)
         ss_list = data.get("hooks", {}).get("SessionStart", [])
         kept_ss = [
-            entry for entry in ss_list
-            if not any(_SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
-                       for h in (entry.get("hooks") or []))
+            entry
+            for entry in ss_list
+            if not any(
+                _SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
+                for h in (entry.get("hooks") or [])
+            )
         ]
         if len(kept_ss) != len(ss_list):
             if kept_ss:
@@ -687,33 +755,53 @@ def cmd_capture_hooks_status(args: argparse.Namespace) -> int:
 
     print(f"Stop template:        {src}  {'PRESENT' if src.exists() else 'MISSING'}")
     print(f"Stop installed:       {dst}  {'PRESENT' if dst.exists() else 'MISSING'}")
-    print(f"Turn template:        {turn_src}  {'PRESENT' if turn_src.exists() else 'MISSING'}")
-    print(f"Turn installed:       {turn_dst}  {'PRESENT' if turn_dst.exists() else 'MISSING'}")
-    print(f"Recall template:      {src_recall}  {'PRESENT' if src_recall.exists() else 'MISSING'}")
-    print(f"Recall installed:     {dst_recall}  {'PRESENT' if dst_recall.exists() else 'MISSING'}")
+    print(
+        f"Turn template:        {turn_src}  {'PRESENT' if turn_src.exists() else 'MISSING'}"
+    )
+    print(
+        f"Turn installed:       {turn_dst}  {'PRESENT' if turn_dst.exists() else 'MISSING'}"
+    )
+    print(
+        f"Recall template:      {src_recall}  {'PRESENT' if src_recall.exists() else 'MISSING'}"
+    )
+    print(
+        f"Recall installed:     {dst_recall}  {'PRESENT' if dst_recall.exists() else 'MISSING'}"
+    )
 
     data = _load_settings(settings)
     stop_list = data.get("hooks", {}).get("Stop", [])
     submit_list = data.get("hooks", {}).get("UserPromptSubmit", [])
     wired = any(
-        any(_CAPTURE_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
+        any(
+            _CAPTURE_HOOK_MARKER in (h.get("command") or "")
+            for h in (entry.get("hooks") or [])
+        )
         for entry in stop_list
     )
     turn_wired = any(
-        any(_TURN_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
+        any(
+            _TURN_HOOK_MARKER in (h.get("command") or "")
+            for h in (entry.get("hooks") or [])
+        )
         for entry in submit_list
     )
     ss_list = data.get("hooks", {}).get("SessionStart", [])
     recall_wired = any(
-        any(_SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
-            for h in (entry.get("hooks") or []))
+        any(
+            _SESSION_RECALL_HOOK_MARKER in (h.get("command") or "")
+            for h in (entry.get("hooks") or [])
+        )
         for entry in ss_list
     )
-    print(f"Claude Code settings.json Stop:             {settings}  {'WIRED' if wired else 'NOT WIRED'}")
-    print(f"Claude Code settings.json UserPromptSubmit: {settings}  {'WIRED' if turn_wired else 'NOT WIRED'}")
-    print(f"Claude Code settings.json SessionStart:     {settings}  {'WIRED' if recall_wired else 'NOT WIRED'}")
+    print(
+        f"Claude Code settings.json Stop:             {settings}  {'WIRED' if wired else 'NOT WIRED'}"
+    )
+    print(
+        f"Claude Code settings.json UserPromptSubmit: {settings}  {'WIRED' if turn_wired else 'NOT WIRED'}"
+    )
+    print(
+        f"Claude Code settings.json SessionStart:     {settings}  {'WIRED' if recall_wired else 'NOT WIRED'}"
+    )
 
     desktop_cfg = _cli._claude_desktop_config_path()
     if desktop_cfg is None:
@@ -733,15 +821,22 @@ def cmd_capture_hooks_status(args: argparse.Namespace) -> int:
     print(desktop_line)
 
     ok = (
-        dst.exists() and wired
-        and turn_dst.exists() and turn_wired
-        and dst_recall.exists() and recall_wired
+        dst.exists()
+        and wired
+        and turn_dst.exists()
+        and turn_wired
+        and dst_recall.exists()
+        and recall_wired
     )
-    desktop_problem = desktop_cfg is not None and desktop_cfg.exists() and not desktop_wired
+    desktop_problem = (
+        desktop_cfg is not None and desktop_cfg.exists() and not desktop_wired
+    )
 
     if ok and not desktop_problem:
-        print(f"\nstatus: ACTIVE — Stop + UserPromptSubmit + SessionStart hooks wired "
-              f"(Claude Code{'; Desktop also wired' if desktop_wired else ''})")
+        print(
+            f"\nstatus: ACTIVE — Stop + UserPromptSubmit + SessionStart hooks wired "
+            f"(Claude Code{'; Desktop also wired' if desktop_wired else ''})"
+        )
         return 0
     msg = []
     if not ok:

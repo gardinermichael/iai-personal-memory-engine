@@ -18,8 +18,12 @@ LOCK_PATH: Path = Path.home() / ".iai-mcp" / ".lock"
 SOCKET_PATH: Path = Path.home() / ".iai-mcp" / ".daemon.sock"
 STATE_PATH: Path = Path.home() / ".iai-mcp" / ".daemon-state.json"
 
-LAUNCHD_TARGET: Path = Path.home() / "Library" / "LaunchAgents" / "com.iai-mcp.daemon.plist"
-SYSTEMD_TARGET: Path = Path.home() / ".config" / "systemd" / "user" / "iai-mcp-daemon.service"
+LAUNCHD_TARGET: Path = (
+    Path.home() / "Library" / "LaunchAgents" / "com.iai-mcp.daemon.plist"
+)
+SYSTEMD_TARGET: Path = (
+    Path.home() / ".config" / "systemd" / "user" / "iai-mcp-daemon.service"
+)
 
 DAEMON_LABEL: str = "com.iai-mcp.daemon"
 SERVICE_NAME: str = "iai-mcp-daemon.service"
@@ -60,11 +64,13 @@ def _ensure_crypto_key_present():
     if os.environ.get("IAI_MCP_CRYPTO_PASSPHRASE"):
         return None
     from iai_mcp.crypto import KEY_BYTES, CryptoKey
+
     ck = CryptoKey(user_id="default")
     path = ck._key_file_path()
     if path.exists():
         return None
     import secrets as _secrets
+
     fresh = _secrets.token_bytes(KEY_BYTES)
     ck._try_file_set(fresh)
     print(f"crypto: created {path} (mode 0o600, {KEY_BYTES} bytes)")
@@ -89,8 +95,6 @@ def _try_short_timeout_connect(timeout_ms: int = 250) -> bool:
             pass
 
 
-
-
 def _send_jsonrpc_request(
     method: str,
     params: dict,
@@ -100,6 +104,7 @@ def _send_jsonrpc_request(
 ) -> dict | None:
     import asyncio
     from iai_mcp.cli._capture import _is_custom_store as _isc
+
     if not os.environ.get("IAI_DAEMON_SOCKET_PATH") and _isc():
         return None
 
@@ -111,7 +116,12 @@ def _send_jsonrpc_request(
                 asyncio.open_unix_connection(sock_path),
                 timeout=connect_timeout,
             )
-        except (FileNotFoundError, ConnectionRefusedError, OSError, asyncio.TimeoutError):
+        except (
+            FileNotFoundError,
+            ConnectionRefusedError,
+            OSError,
+            asyncio.TimeoutError,
+        ):
             return None
         try:
             req = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
@@ -136,8 +146,6 @@ def _send_jsonrpc_request(
     except (OSError, RuntimeError, ValueError) as exc:
         logger.debug("jsonrpc asyncio.run failed: %s", exc)
         return None
-
-
 
 
 def _send_socket_request(req: dict, *, timeout: float = 30.0) -> dict | None:
@@ -191,16 +199,19 @@ def compute_session_start_tokens_p90(store: "MemoryStore") -> dict[str, int | No
     return {"p90": p90, "n_samples": len(samples)}
 
 
-
-
-
-
 def _claude_desktop_config_path() -> Path | None:
     import platform as _plat
+
     home = Path.home()
     sysname = _plat.system()
     if sysname == "Darwin":
-        p = home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+        p = (
+            home
+            / "Library"
+            / "Application Support"
+            / "Claude"
+            / "claude_desktop_config.json"
+        )
     elif sysname == "Windows":
         appdata = os.environ.get("APPDATA") or str(home / "AppData" / "Roaming")
         p = Path(appdata) / "Claude" / "claude_desktop_config.json"
@@ -208,10 +219,6 @@ def _claude_desktop_config_path() -> Path | None:
         xdg = os.environ.get("XDG_CONFIG_HOME") or str(home / ".config")
         p = Path(xdg) / "Claude" / "claude_desktop_config.json"
     return p if p.parent.exists() else None
-
-
-
-
 
 
 def _maintenance_compact_metrics(
@@ -291,6 +298,7 @@ from ._capture import (
     write_watermark,
     cmd_session_refresh_if_stale,
     cmd_capture_transcript,
+    cmd_import_sessions,
     cmd_capture_turn_deferred,
     _capture_hook_paths,
     _turn_hook_paths,
@@ -494,10 +502,16 @@ def _build_parser() -> argparse.ArgumentParser:
             "Used by the Stop hook for ambient WRITE-side observation capture."
         ),
     )
-    cap.add_argument("transcript_path", help="path to the Claude Code JSONL transcript file")
+    cap.add_argument(
+        "transcript_path", help="path to the Claude Code JSONL transcript file"
+    )
     cap.add_argument("--session-id", default="-", help="session id for provenance")
-    cap.add_argument("--max-turns", type=int, default=200,
-                     help="cap on turns to scan (default 200; older turns skipped)")
+    cap.add_argument(
+        "--max-turns",
+        type=int,
+        default=200,
+        help="cap on turns to scan (default 200; older turns skipped)",
+    )
     cap.add_argument(
         "--no-spawn",
         action="store_true",
@@ -510,6 +524,40 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     cap.set_defaults(func=cmd_capture_transcript)
+
+    imp = sub.add_parser(
+        "import-sessions",
+        help=(
+            "bulk-import historical Claude Code JSONL transcripts into the "
+            "episodic tier and write a machine-readable import report"
+        ),
+    )
+    imp.add_argument(
+        "targets",
+        nargs="*",
+        help=(
+            "transcript files, directories, or glob patterns to import "
+            "(default: ~/.claude/projects)"
+        ),
+    )
+    imp.add_argument(
+        "--resume", action="store_true", help="skip files imported by a prior report"
+    )
+    imp.add_argument(
+        "--limit-files", type=int, default=None, help="cap candidate files"
+    )
+    imp.add_argument(
+        "--limit-turns-per-file",
+        type=int,
+        default=None,
+        help="cap conversational turns imported from each file",
+    )
+    imp.add_argument(
+        "--store-path",
+        default=None,
+        help="IAI root directory (defaults to IAI_MCP_STORE or ~/.iai-mcp)",
+    )
+    imp.set_defaults(func=cmd_import_sessions)
 
     ctd = sub.add_parser(
         "capture-turn-deferred",
@@ -546,7 +594,9 @@ def _build_parser() -> argparse.ArgumentParser:
             "only when new memory exists; emit additionalContext JSON on trigger."
         ),
     )
-    sris.add_argument("--session-id", default="-", help="session id for watermark sidecar")
+    sris.add_argument(
+        "--session-id", default="-", help="session id for watermark sidecar"
+    )
     sris.set_defaults(func=cmd_session_refresh_if_stale)
 
     ch = sub.add_parser(
@@ -554,15 +604,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="install/uninstall/status the Claude Code Stop hook for ambient session capture",
     )
     ch_sub = ch.add_subparsers(dest="capture_hooks_cmd", required=True)
-    ch_sub.add_parser("install",
-                      help="copy Stop hook to ~/.claude/hooks/ and register in settings.json"
-                      ).set_defaults(func=cmd_capture_hooks_install)
-    ch_sub.add_parser("uninstall",
-                      help="remove the Stop hook and its settings.json entry"
-                      ).set_defaults(func=cmd_capture_hooks_uninstall)
-    ch_sub.add_parser("status",
-                      help="show whether the Stop hook is installed and active"
-                      ).set_defaults(func=cmd_capture_hooks_status)
+    ch_sub.add_parser(
+        "install",
+        help="copy Stop hook to ~/.claude/hooks/ and register in settings.json",
+    ).set_defaults(func=cmd_capture_hooks_install)
+    ch_sub.add_parser(
+        "uninstall", help="remove the Stop hook and its settings.json entry"
+    ).set_defaults(func=cmd_capture_hooks_uninstall)
+    ch_sub.add_parser(
+        "status", help="show whether the Stop hook is installed and active"
+    ).set_defaults(func=cmd_capture_hooks_status)
 
     a = sub.add_parser(
         "audit",
@@ -614,7 +665,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="print plist/unit contents without writing or invoking launchctl/systemctl",
     )
     di.add_argument(
-        "--yes", "-y",
+        "--yes",
+        "-y",
         action="store_true",
         help="skip the consent banner (records --yes audit-trail still)",
     )
@@ -628,11 +680,13 @@ def _build_parser() -> argparse.ArgumentParser:
     du.set_defaults(func=cmd_daemon_uninstall)
 
     daemon_sub.add_parser(
-        "start", help="launchctl kickstart / systemctl --user start",
+        "start",
+        help="launchctl kickstart / systemctl --user start",
     ).set_defaults(func=cmd_daemon_start)
 
     daemon_sub.add_parser(
-        "stop", help="launchctl kill SIGTERM / systemctl --user stop",
+        "stop",
+        help="launchctl kill SIGTERM / systemctl --user stop",
     ).set_defaults(func=cmd_daemon_stop)
 
     daemon_sub.add_parser(
@@ -657,13 +711,15 @@ def _build_parser() -> argparse.ArgumentParser:
     ).set_defaults(func=cmd_daemon_force_rem)
 
     dpause = daemon_sub.add_parser(
-        "pause", help="pause daemon scheduler for N seconds",
+        "pause",
+        help="pause daemon scheduler for N seconds",
     )
     dpause.add_argument("seconds", type=int)
     dpause.set_defaults(func=cmd_daemon_pause)
 
     daemon_sub.add_parser(
-        "resume", help="resume daemon scheduler after a pause",
+        "resume",
+        help="resume daemon scheduler after a pause",
     ).set_defaults(func=cmd_daemon_resume)
 
     daemon_sub.add_parser(
@@ -756,7 +812,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage",
     )
     mtn_compact.add_argument(
-        "--yes", "-y",
+        "--yes",
+        "-y",
         action="store_true",
         default=False,
         help="(use with --apply) skip the interactive 'y/N' prompt",
@@ -789,7 +846,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="run wal_checkpoint + VACUUM + hnswlib rebuild on Hippo storage",
     )
     mtn_compact_legacy.add_argument(
-        "--yes", "-y",
+        "--yes",
+        "-y",
         action="store_true",
         default=False,
         help="(use with --apply) skip the interactive 'y/N' prompt",
@@ -827,7 +885,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="write missing self-loops at delta=0.1 (hebbian edge_type)",
     )
     mtn_symmetrize.add_argument(
-        "--yes", "-y",
+        "--yes",
+        "-y",
         action="store_true",
         default=False,
         help="(use with --apply) skip the interactive 'y/N' prompt",
@@ -893,7 +952,8 @@ def _build_parser() -> argparse.ArgumentParser:
         help="attempt safe repairs after diagnosis; prompts before each destructive action",
     )
     doc.add_argument(
-        "--yes", "-y",
+        "--yes",
+        "-y",
         action="store_true",
         default=False,
         help="(use with --apply) skip confirmation prompts; equivalent to typing 'y' to all",
@@ -909,9 +969,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "flag explicitly."
         ),
     )
+
     def _cmd_doctor_lazy(args: argparse.Namespace) -> int:
         from iai_mcp.doctor import cmd_doctor
+
         return cmd_doctor(args)
+
     doc.set_defaults(func=_cmd_doctor_lazy)
 
     lc = sub.add_parser(
@@ -955,15 +1018,9 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     br.add_argument("--query", required=True, help="cue substring to match")
-    br.add_argument(
-        "--limit", type=int, default=20, help="max hits (default 20)"
-    )
-    br.add_argument(
-        "--processed-only", action="store_true", default=False
-    )
-    br.add_argument(
-        "--recent-only", action="store_true", default=False
-    )
+    br.add_argument("--limit", type=int, default=20, help="max hits (default 20)")
+    br.add_argument("--processed-only", action="store_true", default=False)
+    br.add_argument("--recent-only", action="store_true", default=False)
     br.add_argument(
         "--json",
         action="store_true",

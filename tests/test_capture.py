@@ -169,3 +169,49 @@ def test_capture_idempotent_after_cap_raise(iai_home, tmp_path):
         f"Second pass must reinforce all {_N_TURNS} turns (not re-insert). "
         f"counts_second={counts_second!r}"
     )
+
+
+def test_capture_transcript_no_uuid_uses_stable_line_provenance(iai_home, tmp_path):
+    """No-uuid transcript lines must be idempotent via path/session/role/timestamp/line."""
+    from iai_mcp.capture import capture_transcript
+
+    transcript = tmp_path / "no_uuid.jsonl"
+    rows = [
+        {
+            "type": "user",
+            "timestamp": "2026-01-01T00:00:00+00:00",
+            "message": {
+                "role": "user",
+                "content": "No uuid user turn long enough for import idem",
+            },
+        },
+        {
+            "type": "assistant",
+            "timestamp": "2026-01-01T00:00:01+00:00",
+            "message": {
+                "role": "assistant",
+                "content": "No uuid assistant turn long enough for import idem",
+            },
+        },
+    ]
+    transcript.write_text(
+        "\n".join(json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8",
+    )
+    store = _open_store()
+
+    first = capture_transcript(store, transcript, session_id="no-uuid-session")
+    after_first = _count_episodic_records(store)
+    second = capture_transcript(store, transcript, session_id="no-uuid-session")
+    after_second = _count_episodic_records(store)
+
+    assert first["inserted"] == 2, first
+    assert second["reinforced"] == 2, second
+    assert after_second == after_first
+    state_dir = tmp_path / ".iai-mcp" / ".import-state"
+    assert state_dir.exists()
+    state_files = list(state_dir.glob("*.json"))
+    assert state_files, "capture_transcript must persist per-import state under store root"
+    state = json.loads(state_files[0].read_text(encoding="utf-8"))
+    assert len(state["turns"]) == 2
+    assert all(key.startswith("jsonl-fallback:") for key in state["turns"])

@@ -219,6 +219,60 @@ def _resolve_ts(ts: str | None) -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _import_state_dir(store: MemoryStore) -> Path:
+    state_dir = Path(store.root) / ".import-state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    return state_dir
+
+
+def _import_state_path(store: MemoryStore, transcript_path: Path, session_id: str) -> Path:
+    resolved = str(transcript_path.expanduser().resolve())
+    digest = hashlib.sha256(f"{session_id}|{resolved}".encode("utf-8")).hexdigest()
+    return _import_state_dir(store) / f"{digest}.json"
+
+
+def _load_import_state(path: Path) -> dict[str, Any]:
+    try:
+        if not path.exists():
+            return {"version": 1, "turns": {}}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {"version": 1, "turns": {}}
+        turns = data.get("turns")
+        if not isinstance(turns, dict):
+            data["turns"] = {}
+        return data
+    except (OSError, json.JSONDecodeError, ValueError):
+        return {"version": 1, "turns": {}}
+
+
+def _save_import_state(path: Path, state: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(state, ensure_ascii=False, sort_keys=True, indent=2),
+        encoding="utf-8",
+    )
+    os.replace(tmp, path)
+
+
+def _transcript_source_key(
+    transcript_path: Path,
+    *,
+    session_id: str,
+    role: str,
+    timestamp: str | None,
+    line_number: int,
+    source_uuid: str | None,
+) -> str:
+    if source_uuid:
+        return f"jsonl-uuid:{source_uuid}"
+    resolved = str(transcript_path.expanduser().resolve())
+    fallback = "|".join([resolved, session_id, role, timestamp or "", str(line_number)])
+    digest = hashlib.sha256(fallback.encode("utf-8")).hexdigest()
+    return f"jsonl-fallback:{digest}"
+
+
 def _idem_tag(
     session_id: str,
     role: str,
@@ -341,6 +395,11 @@ def capture_turn(
         ts_iso = now.isoformat()
         tags.append(_idem_tag(session_id, role, ts_iso, text, source_uuid=source_uuid))
 
+    provenance = {"ts": now.isoformat(), "cue": cue or "(auto-capture)",
+                  "session_id": session_id, "role": role}
+    if source_uuid:
+        provenance["source_uuid"] = source_uuid
+
     rec = MemoryRecord(
         id=uuid4(),
         tier=tier,
@@ -356,8 +415,7 @@ def capture_turn(
         last_reviewed=None,
         never_decay=False,
         never_merge=False,
-        provenance=[{"ts": now.isoformat(), "cue": cue or "(auto-capture)",
-                     "session_id": session_id, "role": role}],
+        provenance=[provenance],
         created_at=now,
         updated_at=now,
         tags=tags,
@@ -399,13 +457,37 @@ def capture_transcript(
 ) -> dict[str, Any]:
     path = Path(transcript_path).expanduser()
     if not path.exists():
-        return {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 1,
-                "reason": f"transcript not found: {path}"}
+        return {
+            "inserted": 0,
+            "reinforced": 0,
+            "skipped": 0,
+            "skipped_duplicates": 0,
+            "failed": 1,
+            "errors": 1,
+            "reason": f"transcript not found: {path}",
+        }
 
-    counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0}
+    counts = {
+        "inserted": 0,
+        "reinforced": 0,
+        "skipped": 0,
+        "skipped_duplicates": 0,
+        "failed": 0,
+    }
+    state_path = _import_state_path(store, path, session_id)
+    state = _load_import_state(state_path)
+    state.update({
+        "version": 1,
+        "transcript_path": str(path.expanduser().resolve()),
+        "session_id": session_id,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+    turns: dict[str, Any] = state.setdefault("turns", {})
+
     seen = 0
+    state_dirty = False
     with path.open() as fh:
-        for line in fh:
+        for line_number, line in enumerate(fh, start=1):
             if seen >= max_turns:
                 break
             seen += 1
@@ -413,7 +495,7 @@ def capture_transcript(
                 obj = json.loads(line)
             except (json.JSONDecodeError, ValueError) as exc:
                 log.debug("capture_transcript_json_parse_failed: %s", exc)
-                counts["errors"] += 1
+                counts["failed"] += 1
                 continue
             msg = obj.get("message") if isinstance(obj.get("message"), dict) else obj
             role = obj.get("type") or msg.get("role", "")
@@ -430,22 +512,73 @@ def capture_transcript(
                 text = str(content).strip()
             if not text:
                 continue
+
+            timestamp = obj.get("timestamp")
+            source_uuid = obj.get("uuid")
+            source_key = _transcript_source_key(
+                path,
+                session_id=session_id,
+                role=role,
+                timestamp=timestamp,
+                line_number=line_number,
+                source_uuid=source_uuid,
+            )
+            source_idem = source_uuid or source_key
+
+            prior = turns.get(source_key)
+            if isinstance(prior, dict):
+                record_id = prior.get("record_id")
+                if record_id:
+                    try:
+                        store.reinforce_record(UUID(str(record_id)))
+                        counts["reinforced"] += 1
+                        prior["last_seen_at"] = datetime.now(timezone.utc).isoformat()
+                        prior["seen_count"] = int(prior.get("seen_count", 1)) + 1
+                        state_dirty = True
+                        continue
+                    except (ValueError, IOError, TypeError):
+                        # The state file may outlive a pruned/tombstoned record; fall through
+                        # to the store-level idem tag, then insert if necessary.
+                        pass
+
             result = capture_turn(
                 store,
-                cue=f"session {session_id} turn {seen}",
+                cue=f"session {session_id} turn {line_number}",
                 text=text,
                 tier="episodic",
                 session_id=session_id,
                 role=role,
-                ts=obj.get("timestamp"),
-                source_uuid=obj.get("uuid"),
+                ts=timestamp,
+                source_uuid=source_idem,
             )
             status = result.get("status", "skipped")
-            if status in counts:
+            if status in {"inserted", "reinforced", "skipped"}:
                 counts[status] += 1
             else:
                 counts["skipped"] += 1
+            if status in {"inserted", "reinforced"}:
+                turns[source_key] = {
+                    "record_id": result.get("record_id"),
+                    "source_uuid": source_uuid,
+                    "source_idem": source_idem,
+                    "role": role,
+                    "timestamp": timestamp,
+                    "line_number": line_number,
+                    "last_status": status,
+                    "last_seen_at": datetime.now(timezone.utc).isoformat(),
+                    "seen_count": (
+                        int(prior.get("seen_count", 0)) + 1
+                        if isinstance(prior, dict)
+                        else 1
+                    ),
+                }
+                state_dirty = True
+            elif prior is not None:
+                counts["skipped_duplicates"] += 1
 
+    counts["errors"] = counts["failed"]
+    if state_dirty:
+        _save_import_state(state_path, state)
     return counts
 
 

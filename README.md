@@ -34,6 +34,7 @@
 - [What it is](#what-it-is)
 - [Quick start](#quick-start)
 - [Usage](#usage)
+- [Command guide](docs/commands.md)
 - [How it works](#how-it-works)
 - [Built our own](#built-our-own)
 - [Benchmarks](#benchmarks)
@@ -222,7 +223,7 @@ Consolidation runs idle. Between sessions, the local engine merges duplicates, s
 
 After a few weeks of regular use the difference becomes noticeable. The assistant stops asking the same orientation questions, references things you mentioned in passing, and adapts to your style without being told.
 
-There's also a CLI — you don't need it for normal use, but when you want to query or add to your memory straight from the terminal, `iai` is there: `recall`, `capture`, `ask` (LLM synthesis grounded in your memory), `status`, and `last`.
+There's also a CLI — you don't need it for normal use, but when you want to query or add to your memory straight from the terminal, `iai` is there: `recall`, `capture`, `ask` (LLM synthesis grounded in your memory), `status`, and `last`. For an operator-oriented map of the main `iai` and `iai-mcp` command families, see [docs/commands.md](docs/commands.md).
 
 <p align="center">
   <img src="docs/assets/iai-cli.png" alt="iai — terminal memory for your agent" width="600">

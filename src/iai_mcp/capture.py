@@ -396,6 +396,7 @@ def capture_transcript(
     *,
     session_id: str = "-",
     max_turns: int = 100_000,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     path = Path(transcript_path).expanduser()
     if not path.exists():
@@ -404,9 +405,11 @@ def capture_transcript(
 
     counts = {"inserted": 0, "reinforced": 0, "skipped": 0, "errors": 0}
     seen = 0
+    capped = False
     with path.open() as fh:
         for line in fh:
             if seen >= max_turns:
+                capped = True
                 break
             seen += 1
             try:
@@ -430,6 +433,9 @@ def capture_transcript(
                 text = str(content).strip()
             if not text:
                 continue
+            if dry_run:
+                counts["skipped"] += 1
+                continue
             result = capture_turn(
                 store,
                 cue=f"session {session_id} turn {seen}",
@@ -445,6 +451,10 @@ def capture_transcript(
                 counts[status] += 1
             else:
                 counts["skipped"] += 1
+
+    if capped:
+        counts["capped"] = True
+        counts["cap"] = max_turns
 
     return counts
 
